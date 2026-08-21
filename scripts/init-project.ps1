@@ -16,15 +16,16 @@ param(
 
 $ErrorActionPreference = "Stop"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
-$RepoRoot = Split-Path -Parent $ScriptDir
-$TemplateDir = Join-Path $RepoRoot "templates"
+$SkillRoot = Split-Path -Parent $ScriptDir
+$TemplateDir = Join-Path $SkillRoot "templates"
+if (-not (Test-Path $TemplateDir)) {
+    $TemplateDir = Join-Path (Split-Path -Parent $ScriptDir) "templates"
+}
 
 Write-Host "`n🚀 Bootstrapping Antigravity Autonomous Engineering Stack in: $TargetDir" -ForegroundColor Cyan
 Write-Host "Project: $ProjectName | Type: $ProjectType" -ForegroundColor Gray
 
 # 1. Create clean essential directory structure
-# Global skills and behavioral rules in ~/.gemini/config/ are automatically inherited.
-# Local .agents/ is reserved strictly for repo-specific custom overrides when necessary.
 $dirs = @(
     "$TargetDir\scripts",
     "$TargetDir\templates",
@@ -39,13 +40,14 @@ foreach ($d in $dirs) {
     }
 }
 
-# 2. Install Clean Templates
+# 2. Install Clean Templates from Template Directory
 if (Test-Path $TemplateDir) {
     $templateMap = @{
-        "$TemplateDir\AGENTS.md"       = "$TargetDir\AGENTS.md"
-        "$TemplateDir\CONSTITUTION.md" = "$TargetDir\CONSTITUTION.md"
-        "$TemplateDir\WORKING.md"      = "$TargetDir\WORKING.md"
-        "$ScriptDir\verify.ps1"        = "$TargetDir\scripts\verify.ps1"
+        "$TemplateDir\AGENTS.md"          = "$TargetDir\AGENTS.md"
+        "$TemplateDir\CONSTITUTION.md"    = "$TargetDir\CONSTITUTION.md"
+        "$TemplateDir\WORKING.md"         = "$TargetDir\WORKING.md"
+        "$TemplateDir\verify.ps1"         = "$TargetDir\scripts\verify.ps1"
+        "$TemplateDir\agent-alarm.ps1"    = "$TargetDir\scripts\agent-alarm.ps1"
     }
 
     foreach ($src in $templateMap.Keys) {
@@ -87,3 +89,4 @@ Write-Host "  1. Review AGENTS.md and configure project-specific build/test comm
 Write-Host "  2. Review CONSTITUTION.md and tailor tech stack invariants."
 Write-Host "  3. Run './scripts/verify.ps1' to test baseline deterministic gates."
 Write-Host "  4. Use 'WORKING.md' for active sprint tracking."
+Write-Host "  5. Use './scripts/agent-alarm.ps1' for audio & speech task completion chimes."

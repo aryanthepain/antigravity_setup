@@ -11,7 +11,9 @@
 
 param(
     [switch]$Quick,
-    [string]$TargetTest
+    [string]$TargetTest,
+    [switch]$Alarm,
+    [switch]$Voice
 )
 
 $ErrorActionPreference = "Continue"
@@ -107,13 +109,37 @@ if (Test-Path "docs/app.js") {
     }
 }
 
-# 4. Overall Verification Result
+# 4. Agent Alarm Resolver
+$alarmScript = Join-Path $PSScriptRoot "agent-alarm.ps1"
+if (-not (Test-Path $alarmScript)) {
+    $alarmScript = Join-Path $env:USERPROFILE ".gemini\config\skills\agent-alarm\scripts\agent-alarm.ps1"
+}
+
+# 5. Overall Verification Result
 if ($failed) {
     Write-Host ""
     Write-Host "⛔ [VERIFICATION FAILED] Please fix errors before proceeding." -ForegroundColor Red
+    if ($Alarm -or $Voice) {
+        if (Test-Path $alarmScript) {
+            $alarmArgs = @("-Type", "Failure", "-Message", "Verification failed. Attention required.")
+            if (-not $Voice) { $alarmArgs += "-SoundOnly" }
+            pwsh -File $alarmScript @alarmArgs
+        } else {
+            try { [System.Media.SystemSounds]::Hand.Play() } catch {}
+        }
+    }
     exit 1
 }
 
 Write-Host ""
 Write-Host "🎉 [VERIFICATION PASSED] All deterministic gates green." -ForegroundColor Green
+if ($Alarm -or $Voice) {
+    if (Test-Path $alarmScript) {
+        $alarmArgs = @("-Type", "Success", "-Message", "All verification gates green.")
+        if (-not $Voice) { $alarmArgs += "-SoundOnly" }
+        pwsh -File $alarmScript @alarmArgs
+    } else {
+        try { [System.Media.SystemSounds]::Asterisk.Play() } catch {}
+    }
+}
 exit 0
