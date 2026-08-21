@@ -1,101 +1,158 @@
 # 🧭 Antigravity Abstract Model-Routing Configuration (2026)
-# Philosophy: Task -> MODEL CLASS -> Available Provider / Model
+# Philosophy: Task -> MODEL CLASS -> Available Provider / Model (Ranked by Preference & Capability)
 
-version: "2026.1"
+version: "2026.2"
 
 # 1. Abstract Capability Tiers
 tiers:
+  # Highest reasoning benchmarks, complex algorithmic design, PRD generation & architectural refactoring
   architecture:
     capability: "high_reasoning"
     preferred_models:
       - provider: "gemini"
-        model: "gemini-2.5-pro"
+        model: "gemini-3.7-flash"
+        mode: "thinking"
+      - provider: "anthropic"
+        model: "claude-3-7-sonnet-latest"
+      - provider: "openai"
+        model: "o3-mini"
       - provider: "deepseek"
         model: "deepseek-reasoner"
+      - provider: "gemini"
+        model: "gemini-2.5-pro"
       - provider: "openrouter"
         model: "deepseek/deepseek-r1:free"
       - provider: "ollama"
         model: "deepseek-r1:32b"
 
+  # Deep multi-file repository exploration (requires 1M+ context window)
   unfamiliar_repo:
     capability: "high_reasoning_and_context"
     preferred_models:
       - provider: "gemini"
-        model: "gemini-2.5-flash"
+        model: "gemini-3.7-flash"
       - provider: "gemini"
-        model: "gemini-3-flash-preview"
+        model: "gemini-2.5-pro"
+      - provider: "gemini"
+        model: "gemini-2.5-flash"
+      - provider: "anthropic"
+        model: "claude-3-7-sonnet-latest"
+      - provider: "ollama"
+        model: "devstral:24b"
 
+  # Day-to-day feature implementation, multi-file editing, tool calling
   normal_implementation:
     capability: "coding_and_tools"
     preferred_models:
       - provider: "gemini"
-        model: "gemini-2.5-flash"
+        model: "gemini-3.7-flash"
+      - provider: "anthropic"
+        model: "claude-3-7-sonnet-latest"
       - provider: "mistral"
         model: "codestral-latest"
+      - provider: "openai"
+        model: "gpt-4o"
+      - provider: "deepseek"
+        model: "deepseek-chat"
       - provider: "groq"
         model: "llama-3.3-70b-versatile"
+      - provider: "ollama"
+        model: "devstral:24b"
       - provider: "ollama"
         model: "qwen2.5-coder:32b-instruct"
 
+  # Small fixes, typos, single-line patches (<20 lines)
   small_fix:
     capability: "low_reasoning_cheap"
     preferred_models:
-      - provider: "groq"
-        model: "llama-3.3-70b-versatile"
       - provider: "gemini"
         model: "gemini-2.5-flash"
+      - provider: "gemini"
+        model: "gemini-3.5-flash-lite"
+      - provider: "openai"
+        model: "gpt-4o-mini"
+      - provider: "anthropic"
+        model: "claude-3-5-haiku-latest"
+      - provider: "groq"
+        model: "llama-3.3-70b-versatile"
       - provider: "ollama"
         model: "qwen2.5-coder:7b"
 
+  # Fast TDD red-green loop test generation
   tests:
     capability: "fast_code_generation"
     preferred_models:
-      - provider: "groq"
-        model: "llama-3.3-70b-versatile"
+      - provider: "gemini"
+        model: "gemini-3.7-flash"
       - provider: "mistral"
         model: "codestral-latest"
+      - provider: "groq"
+        model: "llama-3.3-70b-versatile"
+      - provider: "openai"
+        model: "gpt-4o-mini"
       - provider: "ollama"
         model: "qwen2.5-coder:14b"
 
+  # Markdown documentation, docstrings, README updates
   documentation:
     capability: "low_reasoning_local_or_cheap"
     preferred_models:
       - provider: "groq"
         model: "llama-3.1-8b-instant"
+      - provider: "gemini"
+        model: "gemini-2.5-flash"
+      - provider: "openai"
+        model: "gpt-4o-mini"
       - provider: "ollama"
         model: "llama3.2:3b"
 
+  # Repetitive code migrations, syntax updates across files
   repetitive_migration:
     capability: "cheap_batch_worker"
     preferred_models:
       - provider: "groq"
         model: "llama-3.3-70b-versatile"
+      - provider: "gemini"
+        model: "gemini-2.5-flash"
+      - provider: "mistral"
+        model: "mistral-small-latest"
       - provider: "ollama"
         model: "qwen2.5-coder:14b"
 
+  # Independent second-pass code review (MUST be a different model from coder)
   review:
     capability: "independent_adversarial_reasoning"
     preferred_models:
       - provider: "deepseek"
-        model: "deepseek-chat"
+        model: "deepseek-reasoner"
+      - provider: "anthropic"
+        model: "claude-3-7-sonnet-latest"
       - provider: "mistral"
-        model: "codestral-latest"
+        model: "mistral-large-latest"
       - provider: "gemini"
         model: "gemini-2.5-pro"
+      - provider: "openai"
+        model: "o3-mini"
 
+  # Security audit, threat modeling, vulnerability PoC review
   security:
     capability: "specialized_security_reasoning"
     preferred_models:
+      - provider: "openai"
+        model: "o3-mini"
       - provider: "gemini"
         model: "gemini-2.5-pro"
       - provider: "deepseek"
         model: "deepseek-reasoner"
+      - provider: "anthropic"
+        model: "claude-3-7-sonnet-latest"
 
+  # Code formatting, linting, imports sorting
   formatting:
     capability: "deterministic_tool"
     preferred_models:
       - provider: "local_tool"
-        command: "prettier / black / ruff"
+        command: "prettier / black / ruff / biome"
 
 # 2. Provider Endpoints & Local Fallback
 providers:
@@ -103,29 +160,46 @@ providers:
     base_url: "https://generativelanguage.googleapis.com/v1beta"
     api_key_env: "GEMINI_API_KEY"
     free_daily_limit: 1500
+    notes: "Frontier multimodal & long context workhorse (Gemini 3.7 Flash, 2.5 Pro)"
 
-  groq:
-    base_url: "https://api.groq.com/openai/v1"
-    api_key_env: "GROQ_API_KEY"
-    free_daily_limit: 1000
+  anthropic:
+    base_url: "https://api.anthropic.com/v1"
+    api_key_env: "ANTHROPIC_API_KEY"
+    free_daily_limit: "pay_per_token"
+    notes: "Frontier hybrid reasoning and agentic tool use (Claude 3.7 Sonnet, 3.5 Haiku)"
 
-  mistral:
-    base_url: "https://api.mistral.ai/v1"
-    api_key_env: "MISTRAL_API_KEY"
-    free_daily_limit: "free_tier"
+  openai:
+    base_url: "https://api.openai.com/v1"
+    api_key_env: "OPENAI_API_KEY"
+    free_daily_limit: "pay_per_token"
+    notes: "Frontier STEM reasoning and general code generation (o3-mini, GPT-4o, GPT-4o-mini)"
 
   deepseek:
     base_url: "https://api.deepseek.com/v1"
     api_key_env: "DEEPSEEK_API_KEY"
     free_daily_limit: "free_tier"
+    notes: "Cost-effective frontier reasoning and coding (DeepSeek-R1 / DeepSeek-V3)"
+
+  groq:
+    base_url: "https://api.groq.com/openai/v1"
+    api_key_env: "GROQ_API_KEY"
+    free_daily_limit: 1000
+    notes: "Ultra-fast LPU inference (Llama 3.3 70B, Llama 3.1 8B)"
+
+  mistral:
+    base_url: "https://api.mistral.ai/v1"
+    api_key_env: "MISTRAL_API_KEY"
+    free_daily_limit: "free_tier"
+    notes: "Specialized code generation & large-scale reasoning (Codestral, Mistral Large)"
 
   openrouter:
     base_url: "https://openrouter.ai/api/v1"
     api_key_env: "OPENROUTER_API_KEY"
     free_daily_limit: "unlimited_free_models"
+    notes: "Multi-provider gateway and free community models (openrouter/free, DeepSeek R1 free)"
 
   ollama:
     base_url: "http://localhost:11434/v1"
     api_key_env: "none"
     free_daily_limit: "unlimited_local"
-    notes: "Local offline fallback: qwen2.5-coder:32b or deepseek-r1:32b"
+    notes: "Local zero-cost offline fallback (devstral:24b, qwen2.5-coder:32b, deepseek-r1:32b)"

@@ -67,16 +67,16 @@ All reusable skills and behavioral rules will be installed globally in `C:\Users
 ### 2. Abstract Model Routing Engine
 - Global configuration file: `C:\Users\Aryan Gupta\.gemini\config\model_router.yaml`
 - Maps abstract capability tiers:
-  - `architecture`: `high_reasoning` → Gemini 2.5 Pro / DeepSeek R1 / OpenRouter free
-  - `unfamiliar_repo`: `high_reasoning_and_context` → Gemini 2.5 Flash (1M+ context)
-  - `normal_implementation`: `coding_and_tools` → Gemini Flash / Mistral Codestral / Groq Llama 3.3 70B
-  - `small_fix`: `low_reasoning_cheap` → Groq Llama 3.3 / local Ollama Qwen 2.5 Coder
-  - `tests`: `fast_code_generation` → Groq Llama 3.3
-  - `documentation`: `low_reasoning_cheap` → Groq / Ollama
-  - `review`: `independent_reasoning` → Different strong model (DeepSeek / Mistral)
-  - `security`: `specialized_security` → Gemini Pro / DeepSeek
-  - `formatting`: `deterministic_tool` → Prettier / Black / Ruff
-- Includes explicit local Ollama host configuration (`http://localhost:11434/v1`).
+  - `architecture`: `high_reasoning` → Gemini 3.7 Flash (thinking) / Claude 3.7 Sonnet / OpenAI o3-mini / DeepSeek Reasoner
+  - `unfamiliar_repo`: `high_reasoning_and_context` → Gemini 3.7 Flash / Gemini 2.5 Pro (1M–2M context) / Claude 3.7 Sonnet / Devstral (128k)
+  - `normal_implementation`: `coding_and_tools` → Gemini 3.7 Flash / Claude 3.7 Sonnet / Mistral Codestral / GPT-4o / Groq Llama 3.3 / Devstral / Qwen 2.5 Coder
+  - `small_fix`: `low_reasoning_cheap` → Gemini 2.5 Flash / Gemini 3.5 Flash-Lite / GPT-4o-mini / Claude 3.5 Haiku / Groq
+  - `tests`: `fast_code_generation` → Gemini 3.7 Flash / Mistral Codestral / Groq Llama 3.3 / GPT-4o-mini
+  - `documentation`: `low_reasoning_cheap` → Groq Llama 3.1 8B / Gemini 2.5 Flash / GPT-4o-mini / Ollama
+  - `review`: `independent_reasoning` → DeepSeek Reasoner / Claude 3.7 Sonnet / Mistral Large / Gemini 2.5 Pro / o3-mini
+  - `security`: `specialized_security` → OpenAI o3-mini / Gemini 2.5 Pro / DeepSeek Reasoner / Claude 3.7 Sonnet
+  - `formatting`: `deterministic_tool` → Prettier / Black / Ruff / Biome
+- Full provider coverage: Gemini, Anthropic, OpenAI, DeepSeek, Groq, Mistral, OpenRouter, and Ollama (`http://localhost:11434/v1`).
 
 ### 3. Notion Integration & Kanban Mapping
 - MCP Server: `@modelcontextprotocol/server-notion` registered in `C:\Users\Aryan Gupta\.gemini\config\mcp_config.json`.
@@ -97,8 +97,8 @@ All reusable skills and behavioral rules will be installed globally in `C:\Users
 - Emits reproducible vulnerability PoCs and validates surgical remediation patches.
 
 ### 5. Project Scaffolder (`init-project.ps1`)
-- Located at `d:\projects\antigravity_setup\scripts\init-project.ps1` and mirrored to global skills.
-- Generates `.agents/rules/`, `.agents/skills/`, `scripts/verify.ps1`, `.githooks/pre-commit`, `AGENTS.md`, `CONSTITUTION.md`, and `WORKING.md`.
+- Located in the global skill directory (`~/.gemini/config/skills/init-project/scripts/init-project.ps1`) with local mirror in `scripts/`.
+- Generates clean repository harness (`scripts/verify.ps1`, `.githooks/pre-commit`, `AGENTS.md`, `CONSTITUTION.md`, `WORKING.md`, `learning/`). Relies on global skills and behavioral rules in `~/.gemini/config/` without generating redundant local `.agents/` boilerplate unless specifically needed.
 
 ### 6. Interactive Searchable Documentation Web Application
 - Built in `d:\projects\antigravity_setup\docs/`.
