@@ -167,6 +167,12 @@ tiers:
 
 # 2. Provider Endpoints & Local Fallback
 providers:
+  omniroute:
+    base_url: "http://localhost:20128/v1"
+    api_key_env: "OMNIROUTE_API_KEY"
+    free_daily_limit: "unlimited_unified_gateway"
+    notes: "Unified smart AI router with auto-fallback across Gemini, Groq, Mistral, OpenRouter, Anthropic, and local LLMs"
+
   gemini:
     base_url: "https://generativelanguage.googleapis.com/v1beta"
     api_key_env: "GEMINI_API_KEY"
