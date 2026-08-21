@@ -14,3 +14,11 @@ data/*.db
 *.log
 .DS_Store
 Thumbs.db
+
+# Node & Build Artifacts
+node_modules/
+docs/node_modules/
+dist/
+docs/dist/
+.vite/
+docs/.vite/
