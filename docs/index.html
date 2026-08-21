@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Antigravity Skills & Workflow Catalog</title>
-  <meta name="description" content="Searchable catalog and quick-reference directory for Antigravity skills, behavioral rules, workflows, and tools.">
+  <title>Antigravity 2026 Control Center - Skills, MCP Tools & Architecture</title>
+  <meta name="description" content="Searchable catalog and interactive command directory for Antigravity skills, MCP servers, tool schemas, and zero-budget engineering architecture.">
   
-  <!-- Fonts -->
+  <!-- Modern Typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -19,108 +19,290 @@
     <div class="top-left">
       <div class="brand">
         <span class="brand-icon">⚡</span>
-        <span class="brand-title">Skills & Workflow <strong>Catalog</strong></span>
+        <span class="brand-title">Antigravity <strong>Control Center</strong></span>
       </div>
-      <span class="skill-count-badge" id="totalSkillsBadge">Loading skills...</span>
+      <div class="main-nav-tabs">
+        <button class="nav-tab-btn active" id="tabSkills" data-view="skillsView">
+          <span>⚡</span> Skills Catalog
+        </button>
+        <button class="nav-tab-btn" id="tabMcp" data-view="mcpView">
+          <span>🔌</span> MCP Servers & Tools
+        </button>
+        <button class="nav-tab-btn" id="tabArch" data-view="archView">
+          <span>🏛️</span> Architecture & Router
+        </button>
+      </div>
     </div>
 
     <div class="top-center">
       <div class="search-wrapper">
         <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input type="text" id="skillSearch" placeholder="Search by name, trigger condition, command, keyword (Press / or Ctrl+K)..." autocomplete="off">
+        <input type="text" id="globalSearch" placeholder="Search skills, triggers, MCP tools, schemas (Press / or Ctrl+K)..." autocomplete="off">
         <span class="search-shortcut">/</span>
       </div>
     </div>
 
     <div class="top-right">
-      <button id="themeToggle" class="btn-icon" title="Toggle Theme">
+      <span class="badge-count" id="itemCountBadge">Loading...</span>
+      <button id="themeToggle" class="btn-icon" title="Toggle Dark/Light Theme">
         <span id="themeIcon">🌙</span>
       </button>
-      <a href="https://github.com" target="_blank" rel="noopener" class="btn-icon" title="GitHub Repo">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
-      </a>
     </div>
   </header>
 
-  <!-- Category Filters -->
-  <div class="filter-bar">
-    <div class="category-pills" id="categoryPills">
-      <button class="pill active" data-category="all">All Skills</button>
-      <button class="pill" data-category="core">Core Engineering & Rules</button>
-      <button class="pill" data-category="workflow">Workflow & Planning</button>
-      <button class="pill" data-category="testing">Testing & Verification</button>
-      <button class="pill" data-category="security">Security & Sandbox</button>
-      <button class="pill" data-category="integration">Task & Notion Sync</button>
-      <button class="pill" data-category="scaffolding">Project Scaffolding</button>
-      <button class="pill" data-category="cloud">Data & Google Cloud</button>
-      <button class="pill" data-category="devtools">Web & Chrome DevTools</button>
-      <button class="pill" data-category="flutter">Flutter & Dart</button>
-      <button class="pill" data-category="science">Science & Bio</button>
+  <!-- ================= VIEW 1: SKILLS CATALOG ================= -->
+  <section class="view-section active" id="skillsView">
+    <!-- Category Filters -->
+    <div class="filter-bar">
+      <div class="category-pills" id="skillCategoryPills">
+        <button class="pill active" data-category="all">All Skills</button>
+        <button class="pill" data-category="core">Core Engineering & Rules</button>
+        <button class="pill" data-category="workflow">Workflow & Planning</button>
+        <button class="pill" data-category="testing">Testing & Verification</button>
+        <button class="pill" data-category="security">Security & Sandbox</button>
+        <button class="pill" data-category="integration">Task & Notion Sync</button>
+        <button class="pill" data-category="scaffolding">Project Scaffolding</button>
+        <button class="pill" data-category="cloud">Data & Google Cloud</button>
+        <button class="pill" data-category="devtools">Web & Chrome DevTools</button>
+        <button class="pill" data-category="flutter">Flutter & Dart</button>
+        <button class="pill" data-category="science">Science & Bio</button>
+      </div>
     </div>
-  </div>
 
-  <!-- Quick Match Matrix -->
-  <section class="quick-matrix">
-    <div class="matrix-card" onclick="filterByQuery('planning')">
-      <span class="matrix-icon">📋</span>
-      <div class="matrix-text">
-        <strong>Need to Clarify or Plan?</strong>
-        <span>Use <code>grill-me</code>, <code>write-a-prd</code>, <code>write-a-brief</code></span>
+    <!-- Quick Match Matrix -->
+    <div class="quick-matrix">
+      <div class="matrix-card" onclick="filterBySkillQuery('planning')">
+        <span class="matrix-icon">📋</span>
+        <div class="matrix-text">
+          <strong>Need to Clarify or Plan?</strong>
+          <span>Use <code>grill-me</code>, <code>write-a-prd</code>, <code>write-a-brief</code></span>
+        </div>
+      </div>
+      <div class="matrix-card" onclick="filterBySkillQuery('ponytail')">
+        <span class="matrix-icon">✂️</span>
+        <div class="matrix-text">
+          <strong>Writing Minimal Code?</strong>
+          <span>Use <code>ponytail</code> & <code>karpathy-skills</code></span>
+        </div>
+      </div>
+      <div class="matrix-card" onclick="filterBySkillQuery('verify')">
+        <span class="matrix-icon">🧪</span>
+        <div class="matrix-text">
+          <strong>Verifying & Fixing Bugs?</strong>
+          <span>Use <code>fleet-loop</code>, <code>tdd</code>, <code>verify.ps1</code></span>
+        </div>
+      </div>
+      <div class="matrix-card" onclick="filterBySkillQuery('security')">
+        <span class="matrix-icon">🛡️</span>
+        <div class="matrix-text">
+          <strong>Auditing Security?</strong>
+          <span>Use <code>security-sandbox-review</code> & Strix AI</span>
+        </div>
+      </div>
+      <div class="matrix-card" onclick="filterBySkillQuery('init')">
+        <span class="matrix-icon">🚀</span>
+        <div class="matrix-text">
+          <strong>Starting New Repo?</strong>
+          <span>Use <code>init-project</code> & <code>init-project.ps1</code></span>
+        </div>
       </div>
     </div>
-    <div class="matrix-card" onclick="filterByQuery('ponytail')">
-      <span class="matrix-icon">✂️</span>
-      <div class="matrix-text">
-        <strong>Writing Minimal Code?</strong>
-        <span>Use <code>ponytail</code> & <code>karpathy-skills</code></span>
+
+    <!-- Skills Grid -->
+    <div class="skills-grid" id="skillsGrid">
+      <!-- Injected by app.js -->
+    </div>
+    <div id="noSkillsResults" class="no-results" style="display: none;">
+      <p>🔍 No skills matched your search.</p>
+      <button class="pill" onclick="resetSkillFilters()">Reset search filters</button>
+    </div>
+  </section>
+
+  <!-- ================= VIEW 2: MCP SERVERS & TOOLS ================= -->
+  <section class="view-section" id="mcpView">
+    <!-- MCP Filter Bar -->
+    <div class="filter-bar">
+      <div class="category-pills" id="mcpCategoryPills">
+        <button class="pill active" data-mcp-category="all">All Servers (17)</button>
+        <button class="pill" data-mcp-category="stdio">Local Stdio (npx/cli)</button>
+        <button class="pill" data-mcp-category="http">Remote HTTP / SSE</button>
+        <button class="pill" data-mcp-category="proxy">Cloud Proxy Bundle</button>
+        <button class="pill" data-mcp-category="cloud">Google Remote</button>
       </div>
     </div>
-    <div class="matrix-card" onclick="filterByQuery('verify')">
-      <span class="matrix-icon">🧪</span>
-      <div class="matrix-text">
-        <strong>Verifying & Fixing Bugs?</strong>
-        <span>Use <code>fleet-loop</code>, <code>tdd</code>, <code>verify.ps1</code></span>
-      </div>
+
+    <!-- MCP Servers Grid -->
+    <div class="mcp-grid" id="mcpGrid">
+      <!-- Injected by app.js -->
     </div>
-    <div class="matrix-card" onclick="filterByQuery('security')">
-      <span class="matrix-icon">🛡️</span>
-      <div class="matrix-text">
-        <strong>Auditing Security?</strong>
-        <span>Use <code>security-sandbox-review</code> & Strix AI</span>
-      </div>
+    <div id="noMcpResults" class="no-results" style="display: none;">
+      <p>🔍 No MCP servers or tools matched your search.</p>
+      <button class="pill" onclick="resetMcpFilters()">Reset filters</button>
     </div>
-    <div class="matrix-card" onclick="filterByQuery('init')">
-      <span class="matrix-icon">🚀</span>
-      <div class="matrix-text">
-        <strong>Starting New Repo?</strong>
-        <span>Use <code>init-project</code> & <code>init-project.ps1</code></span>
+  </section>
+
+  <!-- ================= VIEW 3: ARCHITECTURE & ROUTER ================= -->
+  <section class="view-section" id="archView">
+    <div class="arch-container">
+      <div class="arch-hero">
+        <h2>🦅 Zero-Budget Autonomous Engineering System (2026)</h2>
+        <p>Combining DayPilot/Ralph local Kanban with Antigravity, free model cascading (Gemini Flash, Groq, Mistral, DeepSeek), and Ponytail anti-bloat guardrails to achieve $0 API costs and zero token waste.</p>
+        <div style="margin-top: 14px; display: flex; gap: 10px; align-items: center;">
+          <button class="pill active" onclick="copyMasterPrompt()" style="display: flex; align-items: center; gap: 6px;">
+            <span>📋</span> Copy Master Workflow Prompt
+          </button>
+          <span id="promptCopyFeedback" style="color: var(--success); font-size: 0.8rem; display: none;">✓ Copied to clipboard!</span>
+        </div>
+      </div>
+
+      <!-- 5 Pillars -->
+      <div class="pillars-grid">
+        <div class="pillar-card">
+          <div class="pillar-header">
+            <span class="pillar-number">1</span>
+            <h3>Free Model Cascading</h3>
+          </div>
+          <p>Routes to Gemini 2.5/3 Flash (1.5k RPD) → Groq Llama 3.3 70B → Mistral Codestral → DeepSeek R1 for uncapped $0 development.</p>
+        </div>
+
+        <div class="pillar-card">
+          <div class="pillar-header">
+            <span class="pillar-number">2</span>
+            <h3>Deterministic Gates</h3>
+          </div>
+          <p>Let local test runners (<code>pytest</code>, <code>vitest</code>, <code>mypy</code>, <code>tsc</code>) verify code. NEVER burn LLM tokens asking "does this look right?".</p>
+        </div>
+
+        <div class="pillar-card">
+          <div class="pillar-header">
+            <span class="pillar-number">3</span>
+            <h3>Ponytail Minimalism</h3>
+          </div>
+          <p>"The best code is the code you never wrote." Enforces standard library one-liners and eliminates speculative abstractions.</p>
+        </div>
+
+        <div class="pillar-card">
+          <div class="pillar-header">
+            <span class="pillar-number">4</span>
+            <h3>Two-Tier Memory</h3>
+          </div>
+          <p>Tier 1: Ephemeral <code>WORKING.md</code> + folder Kanban (DayPilot). Tier 2: Persistent Knowledge Graph via Memory MCP.</p>
+        </div>
+      </div>
+
+      <!-- Ponytail Laziness Ladder -->
+      <div class="ladder-section">
+        <h3>✂️ The Ponytail Laziness Decision Ladder (Anti-Bloat Gate)</h3>
+        <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 14px;">Ascend this ladder before writing any code to prevent hallucinations and bloat:</p>
+        <div class="ladder-steps">
+          <div class="ladder-step">
+            <span class="step-lvl">Level 1</span>
+            <div class="step-content">
+              <div class="step-title">YAGNI (You Aren't Gonna Need It)</div>
+              <div class="step-desc">Does this requirement or helper function need to exist at all? If not, delete it.</div>
+            </div>
+          </div>
+          <div class="ladder-step">
+            <span class="step-lvl">Level 2</span>
+            <div class="step-content">
+              <div class="step-title">Standard Library</div>
+              <div class="step-desc">Does Python (pathlib, itertools, crypto) or JS/TS (fetch, URL, crypto) standard library do it natively?</div>
+            </div>
+          </div>
+          <div class="ladder-step">
+            <span class="step-lvl">Level 3</span>
+            <div class="step-content">
+              <div class="step-title">Platform / Browser Native</div>
+              <div class="step-desc">Is there a native HTML5 element (&lt;dialog&gt;, &lt;details&gt;) or CSS feature (:has, view transitions)?</div>
+            </div>
+          </div>
+          <div class="ladder-step">
+            <span class="step-lvl">Level 4</span>
+            <div class="step-content">
+              <div class="step-title">Existing Installed Dependency</div>
+              <div class="step-desc">Can an existing library in package.json or pyproject.toml solve it without adding a new package?</div>
+            </div>
+          </div>
+          <div class="ladder-step">
+            <span class="step-lvl">Level 5</span>
+            <div class="step-content">
+              <div class="step-title">Clean One-Liner</div>
+              <div class="step-desc">Can it be written in a single readable standard expression?</div>
+            </div>
+          </div>
+          <div class="ladder-step">
+            <span class="step-lvl">Level 6</span>
+            <div class="step-content">
+              <div class="step-title">Minimal Surgical Code</div>
+              <div class="step-desc">Only then write the minimum surgical implementation and write a deterministic test for it.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Free API Model Routing Matrix -->
+      <div class="ladder-section">
+        <h3>⚡ Free-Tier Model Routing Matrix (OmniRoute - localhost:20128)</h3>
+        <div class="router-table-wrapper">
+          <table class="router-table">
+            <thead>
+              <tr>
+                <th>Role / Task Type</th>
+                <th>Primary Free Model</th>
+                <th>Daily Quota</th>
+                <th>Strengths & Rationale</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>Architect & PRD Planning</strong></td>
+                <td><span class="command-tag">Gemini 3.7 / 2.5 Flash</span></td>
+                <td>1,500 RPD</td>
+                <td>1M+ context window, ultra-fast repository ingestion and spec authoring.</td>
+              </tr>
+              <tr>
+                <td><strong>TDD Fast-Loop & Unit Tests</strong></td>
+                <td><span class="command-tag">Groq Llama 3.3 70B</span></td>
+                <td>1,000 RPD</td>
+                <td>500+ tokens/sec inference; near-instant Red-Green test cycles.</td>
+              </tr>
+              <tr>
+                <td><strong>Precise Code & Refactoring</strong></td>
+                <td><span class="command-tag">Mistral Codestral</span></td>
+                <td>Free tier</td>
+                <td>Fine-tuned specifically for Python & TS syntax accuracy and low churn.</td>
+              </tr>
+              <tr>
+                <td><strong>Complex Algorithmic Reasoning</strong></td>
+                <td><span class="command-tag">DeepSeek V3 / R1</span></td>
+                <td>Free tier</td>
+                <td>Multi-step mathematical and architectural reasoning fallback.</td>
+              </tr>
+              <tr>
+                <td><strong>Background Cloud PRs</strong></td>
+                <td><span class="command-tag">Google Jules</span></td>
+                <td>Free tier</td>
+                <td>Executes cloud issues and opens GitHub PRs in background VMs.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   </section>
 
-  <!-- Skills Grid -->
-  <main class="skills-container">
-    <div class="skills-grid" id="skillsGrid">
-      <!-- Generated dynamically by app.js -->
-    </div>
-    <div id="noResults" class="no-results" style="display: none;">
-      <p>🔍 No skills matched your search.</p>
-      <button class="pill" onclick="resetFilters()">Reset search filters</button>
-    </div>
-  </main>
-
-  <!-- Skill Detail Modal -->
+  <!-- ================= DETAIL MODAL (Skills & MCP) ================= -->
   <div class="modal-backdrop" id="modalBackdrop">
     <div class="modal-card" id="modalCard">
       <div class="modal-header">
         <div class="modal-title-group">
           <span class="badge" id="modalCategory">Category</span>
-          <h2 id="modalTitle">Skill Name</h2>
+          <h2 id="modalTitle">Item Name</h2>
         </div>
         <button class="btn-icon" id="modalClose">✕</button>
       </div>
       <div class="modal-body" id="modalBody">
-        <!-- Filled dynamically -->
+        <!-- Injected dynamically -->
       </div>
     </div>
   </div>
