@@ -40,27 +40,30 @@ flowchart TD
         V_STATIC -->|Fail| RETRY{Attempt < 3?}
         V_UNIT -->|Pass| V_REG["Stage 3: Full Regression Suite"]
         V_UNIT -->|Fail| RETRY
-        V_REG -->|Pass| V_DIFF["Stage 4: AST Diff Inspection"]
+        V_REG -->|Pass| V_UI["Stage 4: Playwright & Chrome DevTools"]
         V_REG -->|Fail| RETRY
+        V_UI -->|Pass| V_DIFF["Stage 5: AST & Git Diff Inspection"]
+        V_UI -->|Fail| RETRY
         RETRY -->|Yes: Surgical Fix| PATCH
-        RETRY -->|No: Hard Stop| BLOCKED["Escalate to Human (Blocker Log)"]
+        RETRY -->|No: Hard Stop| BLOCKED["Escalate to Human (Blocker Trace)"]
     end
 
     %% Stage 5
     subgraph S5["5. Security & Multi-Agent Review"]
         V_DIFF --> SEC_CHECK{Security Sensitive?}
         SEC_CHECK -->|Yes| STRIX["Strix AI Sandbox Pen-Test<br/>(Generate PoC & Verify Fix)"]
-        SEC_CHECK -->|No| CODE_REV["Independent Code Review Pass"]
+        SEC_CHECK -->|No| CODE_REV["Independent Code Review Pass<br/>(DeepSeek R1 / Claude Sonnet)"]
         STRIX --> CODE_REV
     end
 
     %% Stage 6
-    subgraph S6["6. Delivery & Notion Sync"]
+    subgraph S6["6. Delivery, Audio Alert & Notion Sync"]
         CODE_REV --> PR["Open GitHub PR (gh pr create)"]
         PR --> NOTION_REV["Notion Status -> In Review"]
-        NOTION_REV --> HG2{"Human Checkpoint: PR Review & Merge"}
+        NOTION_REV --> ALARM["Play Agent Alarm Chime / Speech"]
+        ALARM --> HG2{"Human Checkpoint: PR Review & Merge"}
         HG2 -->|Merged| DONE["Notion Status -> Done<br/>Clean Up Worktree"]
-        DONE --> LEARN["Record Decisions in learning/"]
+        DONE --> LEARN["Record Insights in learning/instincts.md"]
     end
 ```
 
@@ -74,9 +77,9 @@ Every incoming requirement from Notion, chat, or GitHub is triaged into one of t
 
 | Size           | Scope & Characteristics                                                                      | Execution Path                                                                                                                                                          | Target Model Tier                                |
 | :------------- | :------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------- |
-| **Small (S)**  | Typo, single-line bug, adding a test, minor doc fix, simple rename (<20 lines touched).      | **Direct Act Mode**: No formal planning document required. Immediate surgical patch + test verification.                                                                | `cheap_fast` (Groq Llama 3.3 / local)            |
-| **Medium (M)** | Standard feature, API endpoint, multi-file bug, UI component (20–150 lines touched).         | **Plan Mode → Act Mode**: Generate `implementation_plan.md`, await human confirmation, then execute via Fleet Loop.                                                     | `standard_coding` (Gemini 2.5 Flash / Codestral) |
-| **Large (L)**  | Architectural change, new subsystem, database migration, cross-module refactor (>150 lines). | **Research → Spec → Worktree → Act**: Run `/grill-me`, generate `CONSTITUTION.md` / `spec.md`, spin up isolated git worktree, execute with subagents if parallelizable. | `high_reasoning` (Gemini Pro / DeepSeek R1)      |
+| **Small (S)**  | Typo, single-line bug, adding a test, minor doc fix, simple rename (<20 lines touched).      | **Direct Act Mode**: No formal planning document required. Immediate surgical patch + test verification.                                                                | `cheap_fast` (Groq Llama 3.3 / Mistral Codestral) |
+| **Medium (M)** | Standard feature, API endpoint, multi-file bug, UI component (20–150 lines touched).         | **Plan Mode → Act Mode**: Generate `implementation_plan.md`, await human confirmation, then execute via Fleet Loop.                                                     | `standard_coding` (Gemini 3.7 Flash / Codestral) |
+| **Large (L)**  | Architectural change, new subsystem, database migration, cross-module refactor (>150 lines). | **Research → Spec → Worktree → Act**: Run `/grill-me`, generate `CONSTITUTION.md` / `spec.md`, spin up isolated git worktree, execute with subagents if parallelizable. | `high_reasoning` (Gemini 3.7 Flash Thinking / Claude 3.7 Sonnet) |
 
 ---
 
@@ -115,7 +118,7 @@ Execution follows the **Red → Green → Refactor** cycle:
 1. **Red**: Write a failing unit or integration test reproducing the desired behavior.
 2. **Green**: Implement the fix strictly obeying the **Ponytail Laziness Ladder**:
    - Level 1: YAGNI (drop unasked scope).
-   - Level 2: Standard library first (`pathlib`, `itertools`, `crypto`, `fetch`).
+   - Level 2: Standard library first (`pathlib`, `itertools`, `crypto`, `fetch`, `json`).
    - Level 3: Native platform/browser capabilities.
    - Level 4: Existing dependencies in `package.json` / `pyproject.toml`.
    - Level 5: Clean one-liner expressions.
@@ -128,12 +131,13 @@ Execution follows the **Red → Green → Refactor** cycle:
 
 Run local test scripts (zero LLM token waste):
 
-1. **Stage 1 (Static)**: `tsc --noEmit` / `mypy .`
+1. **Stage 1 (Static)**: `tsc --noEmit` / `mypy .` / `ruff check`
 2. **Stage 2 (Targeted)**: `pytest -k <feature>` / `vitest run <feature>`
 3. **Stage 3 (Regression)**: Full project test suite.
-4. **Stage 4 (Diff Check)**: Inspect `git diff` for accidental modifications.
+4. **Stage 4 (Web & UI)**: Playwright E2E tests and Chrome DevTools audits for accessibility/LCP.
+5. **Stage 5 (Diff Check)**: Inspect `git diff` for accidental modifications.
 
-- **Circuit Breaker**: If tests fail, the agent has a **maximum of 3 fix attempts**. If still failing on attempt 3, it stops, updates `WORKING.md` with the blocker, and asks for human guidance.
+- **Circuit Breaker**: If tests fail, the agent has a **maximum of 3 fix attempts**. If still failing on attempt 3, it stops immediately, updates `WORKING.md` with the blocker trace, and asks for human guidance.
 
 ---
 
@@ -146,11 +150,11 @@ Run local test scripts (zero LLM token waste):
     ```
   - Verify zero exploitable PoCs exist.
 - **Independent Reviewer Pass**:
-  - Spawn an independent Reviewer subagent (or switch model tier to `independent_review`) to verify code against `CONSTITUTION.md` and `AGENTS.md`.
+  - Spawn an independent Reviewer subagent (or switch model tier to `review` with DeepSeek R1 / Claude 3.7 Sonnet) to verify code against `CONSTITUTION.md` and `AGENTS.md`.
 
 ---
 
-### Stage 7: Delivery, PR & Notion Synchronization
+### Stage 7: Delivery, Audio Alert & Notion Synchronization
 
 1. Reconcile issue numbers to avoid merge collisions:
    ```bash
@@ -167,6 +171,10 @@ Run local test scripts (zero LLM token waste):
 4. Update Notion Task:
    - Move status from `In Progress` → `In Review`.
    - Attach PR link.
-5. **Human Gate 2**: Human reviews and merges PR.
-6. Post-Merge: Move Notion card to `Done`, remove worktree (`git worktree remove ../wt-<slug>`).
-7. Record any architectural insights in `learning/decisions.md`.
+5. Trigger Audio Completion Alert (`agent-alarm`):
+   ```powershell
+   [System.Media.SystemSounds]::Asterisk.Play()
+   ```
+6. **Human Gate 2**: Human reviews and merges PR.
+7. Post-Merge: Move Notion card to `Done`, remove worktree (`git worktree remove ../wt-<slug>`).
+8. Record any architectural insights in `learning/instincts.md` (`task-observer`).

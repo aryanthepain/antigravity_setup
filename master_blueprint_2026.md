@@ -56,7 +56,7 @@ graph TD
 
     subgraph "Layer 4: Free Model Gateway (OmniRoute - localhost:20128)"
         J & K --> M["OmniRoute Local Gateway + Headroom Compression"]
-        M -->|1M Context & Architecture| N["Google Gemini 2.5/3 Flash (1,500 RPD)"]
+        M -->|1M Context & Architecture| N["Google Gemini 3.7 Flash Thinking / Claude 3.7 Sonnet"]
         M -->|Sub-second Speed & Tests| O["Groq Llama 3.3 70B (1,000 RPD)"]
         M -->|Syntax & Refactoring| P["Mistral Codestral Free"]
         M -->|Complex Logic / Reasoning| Q["DeepSeek V3 / R1 Free"]
@@ -85,14 +85,14 @@ Every single tool in this stack is **100% free** or operates on a generous perma
 |:---|:---|:---|:---|:---|
 | **Model Gateway** | **OmniRoute** | Local proxy (`localhost:20128`) pooling all free API keys with auto-fallback | Unified OpenAI-compatible endpoint with token compression | $0 (Open Source) |
 | **Context Optimizer** | **Headroom AI** | Intercepts tool outputs/logs with Cache-Compress-Retrieve (CCR) | Compresses agent context by 60–95% | $0 (Open Source) |
-| **Model: Primary** | **Google Gemini Flash** | 1M+ context window via Google AI Studio API | Deep repo exploration, planning, high-context tasks (1,500 RPD) | $0 (Permanent Free) |
+| **Model: Primary** | **Google Gemini 3.7 Flash (Thinking)** | 1M+ context window via Google AI Studio API | Deep repo exploration, planning, high-context tasks (1,500 RPD) | $0 (Permanent Free) |
 | **Model: Fast TDD** | **Groq Llama 3.3** | Ultra-low-latency LPU inference (500+ tokens/sec) | Rapid unit-test generation and iterative red-green loops | $0 (Permanent Free) |
 | **Model: Precision** | **Mistral Codestral** | Dedicated code model via La Plateforme API | Python, TypeScript, and Rust refactoring & type fixes | $0 (Free Tier) |
 | **Model: Reasoning** | **DeepSeek V3 / R1** | High-performance open-weight reasoning | Complex algorithmic design & edge-case discovery | $0 (Free Tier) |
 | **UI Design-to-Code** | **Google Stitch** | AI-native design canvas generating React, Vue, Flutter, SwiftUI | Visual UI prototyping before backend integration | $0 (Free Web) |
 | **Rapid MVP Builder** | **Lovable MCP** | Full-stack app generator connected directly via MCP server | Scaffolding databases (Supabase), auth, and components | $0 (5 daily credits) |
 | **Async PR Agent** | **Google Jules** | Cloud VM agent that clones repos, writes code, and opens PRs | Unattended background maintenance & chore issues | $0 (Free Tier) |
-| **GPU Compute Lab** | **Kaggle / Colab** | 30 hours/week NVIDIA T4/P100 GPU compute | Running local Ollama models, embeddings, and ML experiments | $0 (Free Tier) |
+| **GPU Compute Lab** | **Kaggle / Colab** | 30 hours/week NVIDIA T4/P100 GPU compute | Running local Ollama models (Qwen 2.5 Coder 32B, DeepSeek R1 32B) | $0 (Free Tier) |
 | **Security Agent** | **Strix AI** | Autonomous penetration-testing agent with validated PoCs | Pre-deployment vulnerability auditing and security scans | $0 (Open Source) |
 | **Internet Scraper** | **Agent-Reach** | CLI capability layer scraping GitHub, Reddit, YouTube, X | Real-time library research without paid API keys | $0 (MIT License) |
 | **Worktree Manager** | **Worktrunk / wt** | Fast CLI for spinning up isolated git worktrees | Parallel multi-agent file isolation | $0 (Open Source) |
