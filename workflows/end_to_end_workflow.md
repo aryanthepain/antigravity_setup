@@ -62,12 +62,6 @@ flowchart TD
         HG2 -->|Merged| DONE["Notion Status -> Done<br/>Clean Up Worktree"]
         DONE --> LEARN["Record Decisions in learning/"]
     end
-
-    style A fill:#e1f5fe,stroke:#0288d1
-    style HG1 fill:#fff3e0,stroke:#f57c00
-    style HG2 fill:#fff3e0,stroke:#f57c00
-    style DONE fill:#e8f5e9,stroke:#388e3c
-    style BLOCKED fill:#ffebee,stroke:#d32f2f
 ```
 
 ---
@@ -75,17 +69,19 @@ flowchart TD
 ## 2. Stage-by-Stage Operational Standard
 
 ### Stage 1: Ingestion & Sizing
+
 Every incoming requirement from Notion, chat, or GitHub is triaged into one of three sizing categories:
 
-| Size | Scope & Characteristics | Execution Path | Target Model Tier |
-|:---|:---|:---|:---|
-| **Small (S)** | Typo, single-line bug, adding a test, minor doc fix, simple rename (<20 lines touched). | **Direct Act Mode**: No formal planning document required. Immediate surgical patch + test verification. | `cheap_fast` (Groq Llama 3.3 / local) |
-| **Medium (M)** | Standard feature, API endpoint, multi-file bug, UI component (20–150 lines touched). | **Plan Mode → Act Mode**: Generate `implementation_plan.md`, await human confirmation, then execute via Fleet Loop. | `standard_coding` (Gemini 2.5 Flash / Codestral) |
-| **Large (L)** | Architectural change, new subsystem, database migration, cross-module refactor (>150 lines). | **Research → Spec → Worktree → Act**: Run `/grill-me`, generate `CONSTITUTION.md` / `spec.md`, spin up isolated git worktree, execute with subagents if parallelizable. | `high_reasoning` (Gemini Pro / DeepSeek R1) |
+| Size           | Scope & Characteristics                                                                      | Execution Path                                                                                                                                                          | Target Model Tier                                |
+| :------------- | :------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :----------------------------------------------- |
+| **Small (S)**  | Typo, single-line bug, adding a test, minor doc fix, simple rename (<20 lines touched).      | **Direct Act Mode**: No formal planning document required. Immediate surgical patch + test verification.                                                                | `cheap_fast` (Groq Llama 3.3 / local)            |
+| **Medium (M)** | Standard feature, API endpoint, multi-file bug, UI component (20–150 lines touched).         | **Plan Mode → Act Mode**: Generate `implementation_plan.md`, await human confirmation, then execute via Fleet Loop.                                                     | `standard_coding` (Gemini 2.5 Flash / Codestral) |
+| **Large (L)**  | Architectural change, new subsystem, database migration, cross-module refactor (>150 lines). | **Research → Spec → Worktree → Act**: Run `/grill-me`, generate `CONSTITUTION.md` / `spec.md`, spin up isolated git worktree, execute with subagents if parallelizable. | `high_reasoning` (Gemini Pro / DeepSeek R1)      |
 
 ---
 
 ### Stage 2: Planning & Socratic Grilling (`/grill-me`)
+
 - For **M** and **L** tasks, the agent enters **Plan Mode** (read-only inspection).
 - **Rule**: Never edit project source code during Plan Mode.
 - If requirements contain hidden assumptions or missing edge cases, run `/grill-me` to surface trade-offs.
@@ -98,7 +94,9 @@ Every incoming requirement from Notion, chat, or GitHub is triaged into one of t
 ---
 
 ### Stage 3: Physical Worktree Isolation
+
 For medium and large tasks, never code directly on the main working branch:
+
 ```bash
 # Create isolated worktree and branch
 git worktree add ../wt-<slug> -b brief/<slug>
@@ -111,7 +109,9 @@ cp templates/WORKING.md WORKING.md
 ---
 
 ### Stage 4: Surgical Coding with Ponytail & Karpathy Guardrails
+
 Execution follows the **Red → Green → Refactor** cycle:
+
 1. **Red**: Write a failing unit or integration test reproducing the desired behavior.
 2. **Green**: Implement the fix strictly obeying the **Ponytail Laziness Ladder**:
    - Level 1: YAGNI (drop unasked scope).
@@ -125,16 +125,20 @@ Execution follows the **Red → Green → Refactor** cycle:
 ---
 
 ### Stage 5: Deterministic Fleet Verification Loop
+
 Run local test scripts (zero LLM token waste):
+
 1. **Stage 1 (Static)**: `tsc --noEmit` / `mypy .`
 2. **Stage 2 (Targeted)**: `pytest -k <feature>` / `vitest run <feature>`
 3. **Stage 3 (Regression)**: Full project test suite.
 4. **Stage 4 (Diff Check)**: Inspect `git diff` for accidental modifications.
+
 - **Circuit Breaker**: If tests fail, the agent has a **maximum of 3 fix attempts**. If still failing on attempt 3, it stops, updates `WORKING.md` with the blocker, and asks for human guidance.
 
 ---
 
 ### Stage 6: Security Sandbox Review & Independent Code Review
+
 - **Security-Sensitive Features** (auth, tokens, cryptography, APIs, uploads):
   - Run **Strix AI** in the isolated sandbox:
     ```bash
@@ -147,6 +151,7 @@ Run local test scripts (zero LLM token waste):
 ---
 
 ### Stage 7: Delivery, PR & Notion Synchronization
+
 1. Reconcile issue numbers to avoid merge collisions:
    ```bash
    bash scripts/reconcile-issue-numbers.sh --parent main
