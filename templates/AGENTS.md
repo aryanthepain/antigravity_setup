@@ -1,28 +1,25 @@
-# AGENTS.md — Behavioral Invariants & Operating Guidelines
+# AGENTS.md — Repository Operating Context & Commands
 
-## 1. Affirm Single-Task Contract
-- **1 Task → 1 Agent Session → 1 PR**: Keep every unit of work strictly bounded and verifiable.
-- Never add unrequested features or bundle multiple tasks into a single session.
-- Respect explicit human checkpoints: Plan approval before coding, diff review before merging.
+> [!NOTE]
+> Global behavioral invariants (Single-task delivery contract, Ponytail anti-bloat ladder, Karpathy surgical execution, Fleet loop verification) are inherited globally from `~/.gemini/config/rules/global_rules.md`.
 
-## 2. Ponytail Anti-Bloat Ladder
-Before writing any new function, class, or abstraction, verify:
-1. **YAGNI**: Does this code really need to exist? If not, delete it.
-2. **Stdlib**: Does standard library do it? (`pathlib`, `itertools`, `crypto`, `fetch`).
-3. **Platform**: Is there a native browser or OS feature?
-4. **Existing Dependency**: Check `pyproject.toml` or `package.json` before adding packages.
-5. **One-Liner**: Can it be written in a single clean expression?
-6. **Minimal Code**: Write only the simplest code that makes tests pass.
+## 1. Project Commands & Deterministic Gates
+- **Build**: `[e.g. npm run build / cargo build / poetry build]`
+- **Test**: `[e.g. pytest / npm test / cargo test]`
+- **Typecheck**: `[e.g. mypy . / npx tsc --noEmit]`
+- **Lint & Format**: `[e.g. ruff check . / prettier --check .]`
+- **Universal Verification**: `./scripts/verify.ps1 -Quick`
 
-## 3. Karpathy Surgical Execution
-- **Think First**: State assumptions explicitly. Surface tradeoffs before editing. Stop and ask if ambiguous.
-- **Surgical Edits**: Touch ONLY lines necessary for the active task. Never reformat adjacent code, modify unrelated comments, or delete untouched dead code.
-- **Goal-Driven**: Always define or run the targeted failing test before implementing the patch.
+## 2. Repository Architecture & Layout
+- `src/`: Core application logic.
+- `tests/`: Deterministic test suites.
+- `scripts/`: Local utility scripts and verification gates.
 
-## 4. Deterministic Verification
-- Run `./scripts/verify.ps1` before declaring any task complete.
-- Every task must pass with 0 errors, 0 failed tests, and 0 type warnings.
-- Bounded fix limit: Max 3 retry rounds before escalating to human.
+## 3. Project-Specific Invariants & Conventions
+- **Language / Runtime**: [Specify version, e.g. Python 3.12+, Node 22+]
+- **Package Manager**: [Specify, e.g. uv, pnpm, cargo]
+- **State Management / Database**: [Specify architecture]
+- **Skills & Rules**: Rely on global skills and rules (`~/.gemini/config/`) by default; project-scoped overrides in `.agents/` are used only when strictly necessary.
 
-## 5. Ephemeral Memory (`WORKING.md`)
-- Keep `WORKING.md` updated with the active objective, test failure traces, hypotheses, and blockers.
+## 4. Ephemeral Memory (`WORKING.md`)
+- Maintain active sprint objectives, test failure traces, hypotheses, and blockers in `WORKING.md`.

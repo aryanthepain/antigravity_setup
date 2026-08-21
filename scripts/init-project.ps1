@@ -1,7 +1,8 @@
 <#
 .SYNOPSIS
     Antigravity Universal Project Scaffolder (init-project.ps1)
-    Bootstraps any repository with Antigravity behavioral rules, templates, and verification gates.
+    Bootstraps any repository with clean Antigravity engineering files and deterministic verification gates.
+    Inherits global rules and skills from ~/.gemini/config/ without creating redundant local boilerplate.
 .EXAMPLE
     .\scripts\init-project.ps1 -TargetDir "d:\projects\new_app" -ProjectName "NewApp" -ProjectType "python"
 #>
@@ -15,15 +16,16 @@ param(
 
 $ErrorActionPreference = "Stop"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
-$SetupRoot = Split-Path -Parent $ScriptDir
+$RepoRoot = Split-Path -Parent $ScriptDir
+$TemplateDir = Join-Path $RepoRoot "templates"
 
 Write-Host "`n🚀 Bootstrapping Antigravity Autonomous Engineering Stack in: $TargetDir" -ForegroundColor Cyan
 Write-Host "Project: $ProjectName | Type: $ProjectType" -ForegroundColor Gray
 
-# 1. Create directory structure
+# 1. Create clean essential directory structure
+# Global skills and behavioral rules in ~/.gemini/config/ are automatically inherited.
+# Local .agents/ is reserved strictly for repo-specific custom overrides when necessary.
 $dirs = @(
-    "$TargetDir\.agents\rules",
-    "$TargetDir\.agents\skills",
     "$TargetDir\scripts",
     "$TargetDir\templates",
     "$TargetDir\learning",
@@ -37,34 +39,29 @@ foreach ($d in $dirs) {
     }
 }
 
-# 2. Copy Templates if available
-$templates = @{
-    "$SetupRoot\templates\AGENTS.md"       = "$TargetDir\AGENTS.md"
-    "$SetupRoot\templates\CONSTITUTION.md" = "$TargetDir\CONSTITUTION.md"
-    "$SetupRoot\templates\WORKING.md"      = "$TargetDir\WORKING.md"
-    "$SetupRoot\scripts\verify.ps1"        = "$TargetDir\scripts\verify.ps1"
-}
+# 2. Install Clean Templates
+if (Test-Path $TemplateDir) {
+    $templateMap = @{
+        "$TemplateDir\AGENTS.md"       = "$TargetDir\AGENTS.md"
+        "$TemplateDir\CONSTITUTION.md" = "$TargetDir\CONSTITUTION.md"
+        "$TemplateDir\WORKING.md"      = "$TargetDir\WORKING.md"
+        "$ScriptDir\verify.ps1"        = "$TargetDir\scripts\verify.ps1"
+    }
 
-foreach ($src in $templates.Keys) {
-    $dst = $templates[$src]
-    if (Test-Path $src) {
-        if (-not (Test-Path $dst)) {
-            Copy-Item -Path $src -Destination $dst -Force
-            Write-Host "  [+] Installed template: $dst" -ForegroundColor Green
-        } else {
-            Write-Host "  [.] Preserved existing: $dst" -ForegroundColor Yellow
+    foreach ($src in $templateMap.Keys) {
+        $dst = $templateMap[$src]
+        if (Test-Path $src) {
+            if (-not (Test-Path $dst)) {
+                Copy-Item -Path $src -Destination $dst -Force
+                Write-Host "  [+] Installed template: $dst" -ForegroundColor Green
+            } else {
+                Write-Host "  [.] Preserved existing: $dst" -ForegroundColor Yellow
+            }
         }
     }
 }
 
-# 3. Copy Local Rules into .agents/rules
-$rulesSrc = "C:\Users\Aryan Gupta\.gemini\config\rules\global_rules.md"
-if (Test-Path $rulesSrc) {
-    Copy-Item -Path $rulesSrc -Destination "$TargetDir\.agents\rules\global_rules.md" -Force
-    Write-Host "  [+] Linked local rules in .agents/rules/" -ForegroundColor Green
-}
-
-# 4. Configure Git Hooks
+# 3. Configure Git Hooks
 if (Test-Path "$TargetDir\.git") {
     try {
         git -C $TargetDir config core.hooksPath .githooks
@@ -82,9 +79,11 @@ pwsh -File ./scripts/verify.ps1 -Quick
     }
 }
 
-# 5. Summary
+# 4. Summary
 Write-Host "`n✅ Project '$ProjectName' initialized successfully!" -ForegroundColor Cyan
+Write-Host "Invariants & Skills: Inherited globally from ~/.gemini/config/" -ForegroundColor Gray
 Write-Host "Next Steps:" -ForegroundColor Yellow
-Write-Host "  1. Review CONSTITUTION.md and tailor tech stack invariants."
-Write-Host "  2. Run './scripts/verify.ps1' to test baseline deterministic gates."
-Write-Host "  3. Use 'WORKING.md' for active sprint tracking."
+Write-Host "  1. Review AGENTS.md and configure project-specific build/test commands."
+Write-Host "  2. Review CONSTITUTION.md and tailor tech stack invariants."
+Write-Host "  3. Run './scripts/verify.ps1' to test baseline deterministic gates."
+Write-Host "  4. Use 'WORKING.md' for active sprint tracking."
