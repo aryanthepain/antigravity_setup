@@ -1,0 +1,16 @@
+# Environment & Secrets
+.env
+.env.local
+*.pem
+*.key
+
+# Databases & Cache
+data/*.db
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs & Temp
+*.log
+.DS_Store
+Thumbs.db

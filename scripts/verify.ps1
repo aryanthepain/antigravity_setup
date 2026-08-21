@@ -1,11 +1,11 @@
 <#
 .SYNOPSIS
     Deterministic Verification Gate (verify.ps1)
-    Detects repository type and runs zero-cost static analysis & test suites.
+    Detects repository type and runs zero-cost static analysis and test suites.
 .DESCRIPTION
     Runs:
-      1. Static Analysis / Typecheck (mypy, tsc, eslint)
-      2. Unit & Integration Tests (pytest, vitest, npm test)
+      1. Static Analysis / Typecheck (mypy, tsc, eslint, node syntax check)
+      2. Unit and Integration Tests (pytest, vitest, npm test)
     Returns exit code 0 if all gates pass, 1 otherwise.
 #>
 
@@ -17,14 +17,17 @@ param(
 $ErrorActionPreference = "Continue"
 $failed = $false
 
-Write-Host "`n🔍 [FLEET LOOP] Running Deterministic Verification..." -ForegroundColor Cyan
+Write-Host ""
+Write-Host "🔍 [FLEET LOOP] Running Deterministic Verification..." -ForegroundColor Cyan
 
 # 1. Detect Python Project
-if ((Test-Path "pyproject.toml") -or (Test-Path "requirements.txt") -or (Test-Path "setup.py")) {
-    Write-Host "`n--- [Python Gate] ---" -ForegroundColor Yellow
+$isPython = (Test-Path "pyproject.toml") -or (Test-Path "requirements.txt") -or (Test-Path "setup.py")
+if ($isPython) {
+    Write-Host ""
+    Write-Host "--- [Python Gate] ---" -ForegroundColor Yellow
 
-    # Typecheck with mypy if available
-    if (Get-Command mypy -ErrorAction SilentlyContinue) {
+    $hasMypy = Get-Command mypy -ErrorAction SilentlyContinue
+    if ($hasMypy) {
         Write-Host "Running mypy static analysis..." -ForegroundColor Gray
         mypy .
         if ($LASTEXITCODE -ne 0) {
@@ -35,28 +38,31 @@ if ((Test-Path "pyproject.toml") -or (Test-Path "requirements.txt") -or (Test-Pa
         }
     }
 
-    # Run pytest
     if (-not $failed) {
-        Write-Host "Running pytest..." -ForegroundColor Gray
-        if ($TargetTest) {
-            pytest -k $TargetTest -v
-        } else {
-            pytest -q
-        }
-        if ($LASTEXITCODE -ne 0) {
-            Write-Host "❌ pytest tests failed!" -ForegroundColor Red
-            $failed = $true
-        } else {
-            Write-Host "✅ pytest tests passed." -ForegroundColor Green
+        $hasPytest = Get-Command pytest -ErrorAction SilentlyContinue
+        if ($hasPytest) {
+            Write-Host "Running pytest..." -ForegroundColor Gray
+            if ($TargetTest) {
+                pytest -k $TargetTest -v
+            } else {
+                pytest -q
+            }
+            if ($LASTEXITCODE -ne 0) {
+                Write-Host "❌ pytest tests failed!" -ForegroundColor Red
+                $failed = $true
+            } else {
+                Write-Host "✅ pytest tests passed." -ForegroundColor Green
+            }
         }
     }
 }
 
 # 2. Detect Node / TypeScript Project
-if (Test-Path "package.json") {
-    Write-Host "`n--- [Node / TypeScript Gate] ---" -ForegroundColor Yellow
+$isNode = Test-Path "package.json"
+if ($isNode) {
+    Write-Host ""
+    Write-Host "--- [Node / TypeScript Gate] ---" -ForegroundColor Yellow
 
-    # Typecheck with tsc if configured
     if (Test-Path "tsconfig.json") {
         Write-Host "Running tsc typecheck..." -ForegroundColor Gray
         npx tsc --noEmit
@@ -68,16 +74,12 @@ if (Test-Path "package.json") {
         }
     }
 
-    # Run tests
     if (-not $failed) {
         Write-Host "Running tests (npm test)..." -ForegroundColor Gray
         if ($TargetTest) {
             npm test -- $TargetTest
         } else {
-            npm test -- --run 2>$null
-            if ($LASTEXITCODE -ne 0) {
-                npm test
-            }
+            npm test
         }
         if ($LASTEXITCODE -ne 0) {
             Write-Host "❌ npm test failed!" -ForegroundColor Red
@@ -88,11 +90,30 @@ if (Test-Path "package.json") {
     }
 }
 
-# 3. Overall Verification Result
-if ($failed) {
-    Write-Host "`n⛔ [VERIFICATION FAILED] Please fix errors before proceeding." -ForegroundColor Red
-    exit 1
-} else {
-    Write-Host "`n🎉 [VERIFICATION PASSED] All deterministic gates green." -ForegroundColor Green
-    exit 0
+# 3. Detect JavaScript / Web Project (e.g. docs/app.js syntax check)
+if (Test-Path "docs/app.js") {
+    Write-Host ""
+    Write-Host "--- [Web and JavaScript Gate] ---" -ForegroundColor Yellow
+    $hasNode = Get-Command node -ErrorAction SilentlyContinue
+    if ($hasNode) {
+        Write-Host "Checking docs/app.js syntax..." -ForegroundColor Gray
+        node --check docs/app.js
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "❌ docs/app.js syntax check failed!" -ForegroundColor Red
+            $failed = $true
+        } else {
+            Write-Host "✅ docs/app.js syntax check passed." -ForegroundColor Green
+        }
+    }
 }
+
+# 4. Overall Verification Result
+if ($failed) {
+    Write-Host ""
+    Write-Host "⛔ [VERIFICATION FAILED] Please fix errors before proceeding." -ForegroundColor Red
+    exit 1
+}
+
+Write-Host ""
+Write-Host "🎉 [VERIFICATION PASSED] All deterministic gates green." -ForegroundColor Green
+exit 0

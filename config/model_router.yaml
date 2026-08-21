@@ -1,7 +1,7 @@
 # 🧭 Antigravity Abstract Model-Routing Configuration (2026)
 # Philosophy: Task -> MODEL CLASS -> Available Provider / Model (Ranked by Preference & Capability)
 
-version: "2026.2"
+version: "2026.3"
 
 # 1. Abstract Capability Tiers
 tiers:
@@ -14,14 +14,17 @@ tiers:
         mode: "thinking"
       - provider: "anthropic"
         model: "claude-3-7-sonnet-latest"
-      - provider: "openai"
-        model: "o3-mini"
+        mode: "thinking"
       - provider: "deepseek"
         model: "deepseek-reasoner"
+      - provider: "openai"
+        model: "o3-mini"
       - provider: "gemini"
         model: "gemini-2.5-pro"
       - provider: "openrouter"
         model: "deepseek/deepseek-r1:free"
+      - provider: "kaggle_tunnel"
+        model: "deepseek-r1:32b"
       - provider: "ollama"
         model: "deepseek-r1:32b"
 
@@ -31,12 +34,15 @@ tiers:
     preferred_models:
       - provider: "gemini"
         model: "gemini-3.7-flash"
+        mode: "thinking"
       - provider: "gemini"
         model: "gemini-2.5-pro"
-      - provider: "gemini"
-        model: "gemini-2.5-flash"
       - provider: "anthropic"
         model: "claude-3-7-sonnet-latest"
+      - provider: "gemini"
+        model: "gemini-2.5-flash"
+      - provider: "kaggle_tunnel"
+        model: "qwen2.5-coder:32b"
       - provider: "ollama"
         model: "devstral:24b"
 
@@ -50,14 +56,14 @@ tiers:
         model: "claude-3-7-sonnet-latest"
       - provider: "mistral"
         model: "codestral-latest"
+      - provider: "groq"
+        model: "llama-3.3-70b-versatile"
       - provider: "openai"
         model: "gpt-4o"
       - provider: "deepseek"
         model: "deepseek-chat"
-      - provider: "groq"
-        model: "llama-3.3-70b-versatile"
-      - provider: "ollama"
-        model: "devstral:24b"
+      - provider: "kaggle_tunnel"
+        model: "qwen2.5-coder:32b"
       - provider: "ollama"
         model: "qwen2.5-coder:32b-instruct"
 
@@ -65,16 +71,16 @@ tiers:
   small_fix:
     capability: "low_reasoning_cheap"
     preferred_models:
+      - provider: "groq"
+        model: "llama-3.3-70b-versatile"
       - provider: "gemini"
         model: "gemini-2.5-flash"
-      - provider: "gemini"
-        model: "gemini-3.5-flash-lite"
+      - provider: "mistral"
+        model: "codestral-latest"
       - provider: "openai"
         model: "gpt-4o-mini"
       - provider: "anthropic"
         model: "claude-3-5-haiku-latest"
-      - provider: "groq"
-        model: "llama-3.3-70b-versatile"
       - provider: "ollama"
         model: "qwen2.5-coder:7b"
 
@@ -82,14 +88,16 @@ tiers:
   tests:
     capability: "fast_code_generation"
     preferred_models:
-      - provider: "gemini"
-        model: "gemini-3.7-flash"
-      - provider: "mistral"
-        model: "codestral-latest"
       - provider: "groq"
         model: "llama-3.3-70b-versatile"
+      - provider: "mistral"
+        model: "codestral-latest"
+      - provider: "gemini"
+        model: "gemini-3.7-flash"
       - provider: "openai"
         model: "gpt-4o-mini"
+      - provider: "kaggle_tunnel"
+        model: "qwen2.5-coder:32b"
       - provider: "ollama"
         model: "qwen2.5-coder:14b"
 
@@ -116,6 +124,8 @@ tiers:
         model: "gemini-2.5-flash"
       - provider: "mistral"
         model: "mistral-small-latest"
+      - provider: "kaggle_tunnel"
+        model: "qwen2.5-coder:32b"
       - provider: "ollama"
         model: "qwen2.5-coder:14b"
 
@@ -127,12 +137,13 @@ tiers:
         model: "deepseek-reasoner"
       - provider: "anthropic"
         model: "claude-3-7-sonnet-latest"
+        mode: "thinking"
+      - provider: "openai"
+        model: "o3-mini"
       - provider: "mistral"
         model: "mistral-large-latest"
       - provider: "gemini"
         model: "gemini-2.5-pro"
-      - provider: "openai"
-        model: "o3-mini"
 
   # Security audit, threat modeling, vulnerability PoC review
   security:
@@ -140,12 +151,12 @@ tiers:
     preferred_models:
       - provider: "openai"
         model: "o3-mini"
-      - provider: "gemini"
-        model: "gemini-2.5-pro"
       - provider: "deepseek"
         model: "deepseek-reasoner"
       - provider: "anthropic"
         model: "claude-3-7-sonnet-latest"
+      - provider: "gemini"
+        model: "gemini-2.5-pro"
 
   # Code formatting, linting, imports sorting
   formatting:
@@ -160,7 +171,7 @@ providers:
     base_url: "https://generativelanguage.googleapis.com/v1beta"
     api_key_env: "GEMINI_API_KEY"
     free_daily_limit: 1500
-    notes: "Frontier multimodal & long context workhorse (Gemini 3.7 Flash, 2.5 Pro)"
+    notes: "Frontier multimodal & long context workhorse (Gemini 3.7 Flash Thinking, 2.5 Pro)"
 
   anthropic:
     base_url: "https://api.anthropic.com/v1"
@@ -197,6 +208,12 @@ providers:
     api_key_env: "OPENROUTER_API_KEY"
     free_daily_limit: "unlimited_free_models"
     notes: "Multi-provider gateway and free community models (openrouter/free, DeepSeek R1 free)"
+
+  kaggle_tunnel:
+    base_url: "http://localhost:11434/v1"
+    api_key_env: "none"
+    free_daily_limit: "30_hours_weekly_gpu"
+    notes: "Remote Kaggle/Colab GPU host exposed via Pinggy / Cloudflare (Qwen 2.5 Coder 32B, DeepSeek R1 32B)"
 
   ollama:
     base_url: "http://localhost:11434/v1"
