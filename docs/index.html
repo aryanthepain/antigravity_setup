@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Antigravity 2026 — Zero-Budget Autonomous Engineering System</title>
+  <meta name="description" content="Production-grade, zero-budget AI software engineering system built on Google Antigravity, Karpathy & Ponytail guardrails, Fleet verification loops, and Notion Kanban.">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- Mermaid.js for Diagrams -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Header -->
+  <header class="top-nav">
+    <div class="nav-left">
+      <button id="sidebarToggle" class="icon-btn" aria-label="Toggle Sidebar">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <a href="#overview" class="logo">
+        <span class="logo-icon">🌌</span>
+        <span class="logo-text">Antigravity<strong>2026</strong></span>
+      </a>
+      <span class="badge badge-primary">Zero-Budget Core</span>
+    </div>
+
+    <div class="nav-center">
+      <div class="search-box">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="searchInput" placeholder="Search architecture, workflows, rules (Ctrl + K)...">
+        <kbd>Ctrl K</kbd>
+      </div>
+    </div>
+
+    <div class="nav-right">
+      <button id="themeToggle" class="icon-btn" title="Toggle Theme">
+        <span id="themeIcon">🌙</span>
+      </button>
+      <a href="https://github.com" target="_blank" rel="noopener" class="icon-btn" title="GitHub Repository">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>
+      </a>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <div class="layout-container">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <nav class="sidebar-nav">
+        <div class="nav-group">
+          <div class="nav-group-title">FOUNDATIONS</div>
+          <a href="#overview" class="nav-link active">1. Overview & Philosophy</a>
+          <a href="#affirm-contract" class="nav-link">2. Affirm 1-Task 1-PR</a>
+          <a href="#ponytail-ladder" class="nav-link">3. Ponytail Laziness Ladder</a>
+          <a href="#karpathy-rules" class="nav-link">4. Karpathy Grounding</a>
+          <a href="#single-agent" class="nav-link">5. Single-Agent Default</a>
+        </div>
+
+        <div class="nav-group">
+          <div class="nav-group-title">WORKFLOWS & SIZING</div>
+          <a href="#task-sizing" class="nav-link">6. Task Sizing (S / M / L)</a>
+          <a href="#end-to-end" class="nav-link">7. End-to-End Workflow</a>
+          <a href="#fleet-loop" class="nav-link">8. Fleet Verification Loop</a>
+        </div>
+
+        <div class="nav-group">
+          <div class="nav-group-title">ROUTING & SECURITY</div>
+          <a href="#model-router" class="nav-link">9. Abstract Model Router</a>
+          <a href="#security-sandbox" class="nav-link">10. Strix AI Security Sandbox</a>
+        </div>
+
+        <div class="nav-group">
+          <div class="nav-group-title">INTEGRATIONS & SCAFFOLDING</div>
+          <a href="#notion-sync" class="nav-link">11. Notion Kanban Sync</a>
+          <a href="#mcp-suite" class="nav-link">12. MCP Suite Configuration</a>
+          <a href="#init-project" class="nav-link">13. Project Initializer (`init-project`)</a>
+        </div>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content" id="content">
+      
+      <!-- Section 1: Overview -->
+      <section id="overview" class="doc-section">
+        <div class="section-header">
+          <span class="badge badge-accent">Architecture 2026</span>
+          <h1>🌌 Antigravity Zero-Budget Autonomous Engineering System</h1>
+          <p class="subtitle">A battle-tested, token-surgical software engineering harness built on Google Antigravity, deterministic verification gates, abstract model routing, and strict anti-bloat guardrails.</p>
+        </div>
+
+        <div class="grid grid-3">
+          <div class="card glass-card">
+            <div class="card-icon">⚡</div>
+            <h3>$0.00 / Month Budget</h3>
+            <p>Routes abstract task classes across free cloud inference tiers (Gemini Flash, Groq, Codestral, DeepSeek) + local Ollama fallback.</p>
+          </div>
+          <div class="card glass-card">
+            <div class="card-icon">🛡️</div>
+            <h3>Ponytail & Karpathy Guardrails</h3>
+            <p>Prevents AI over-engineering using the 6-level laziness ladder, think-first rules, and surgical line-level edits.</p>
+          </div>
+          <div class="card glass-card">
+            <div class="card-icon">🔄</div>
+            <h3>Fleet Verification Loop</h3>
+            <p>Replaces naive infinite fix loops with a bounded 4-stage deterministic ladder and a hard 3-retry circuit breaker.</p>
+          </div>
+        </div>
+
+        <div class="diagram-wrapper glass-panel">
+          <h3>Master System Architecture</h3>
+          <div class="mermaid">
+graph TD
+    A[Task / Notion Kanban] --> B{Task Sizing S / M / L}
+    B -->|Small S| C[Direct Act Mode]
+    B -->|Medium M| D[Plan Mode: Spec & Invariants]
+    B -->|Large L| E[Research + /grill-me + Architecture]
+    D & E --> HG1{Human Checkpoint: Approve Plan}
+    HG1 -->|Approved| ISO[Git Worktree Isolation: brief/slug]
+    C & ISO --> FL[Fleet Loop: TDD & Surgical Patches]
+    FL --> PT[Ponytail Ladder: YAGNI -> Stdlib -> Minimal]
+    PT --> V[Deterministic Verification: tsc / mypy / pytest]
+    V -->|Pass| SEC{Security Audit: Strix AI Sandbox}
+    SEC --> IR[Independent Reviewer Pass]
+    IR --> HG2{Human Checkpoint: PR Review & Merge}
+    HG2 -->|Merged| PR[Notion Status -> Done & Learning Review]
+
+    style A fill:#1e293b,stroke:#38bdf8
+    style HG1 fill:#334155,stroke:#f59e0b
+    style HG2 fill:#334155,stroke:#f59e0b
+    style PR fill:#064e3b,stroke:#10b981
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 2: Affirm 1-Task 1-PR -->
+      <section id="affirm-contract" class="doc-section">
+        <h2>1. Affirm Single-Task Delivery Contract</h2>
+        <p>Inspired by Affirm's engineering organization retooling for agentic development:</p>
+        <div class="alert alert-info">
+          <strong>The Golden Contract:</strong> <code>1 Task → 1 Agent Session → 1 PR</code> with explicit human checkpoints around planning and final review.
+        </div>
+        <ul>
+          <li><strong>Bounded Scope:</strong> Never let an agent session wander into unbounded feature sprawl or tangential refactoring.</li>
+          <li><strong>Deterministic Artifact:</strong> Every successful task culminates in a clean git branch (<code>brief/<slug></code>) and a well-described Pull Request.</li>
+          <li><strong>Human in Control:</strong> Autonomous coding happens within boundaries, but humans retain architectural authority and merge decisions.</li>
+        </ul>
+      </section>
+
+      <!-- Section 3: Ponytail Ladder -->
+      <section id="ponytail-ladder" class="doc-section">
+        <h2>2. The Ponytail Laziness Ladder</h2>
+        <p>Before an agent writes any new code or introduces dependencies, it must ascend the <strong>Ponytail Decision Ladder</strong>:</p>
+
+        <div class="ladder-container">
+          <div class="ladder-step step-1">
+            <span class="step-num">Level 1</span>
+            <span class="step-title">YAGNI (You Ain't Gonna Need It)</span>
+            <span class="step-desc">Does this code need to exist? If not strictly requested, drop it.</span>
+          </div>
+          <div class="ladder-step step-2">
+            <span class="step-num">Level 2</span>
+            <span class="step-title">Standard Library First</span>
+            <span class="step-desc">Can Python/Node stdlib do it? (<code>pathlib</code>, <code>itertools</code>, <code>crypto</code>, <code>fetch</code>).</span>
+          </div>
+          <div class="ladder-step step-3">
+            <span class="step-num">Level 3</span>
+            <span class="step-title">Native Platform / Browser Feature</span>
+            <span class="step-desc">Use native HTML/CSS/DOM APIs instead of third-party widget packages.</span>
+          </div>
+          <div class="ladder-step step-4">
+            <span class="step-num">Level 4</span>
+            <span class="step-title">Existing Project Dependency</span>
+            <span class="step-desc">Reuse what is already installed in <code>pyproject.toml</code> or <code>package.json</code>.</span>
+          </div>
+          <div class="ladder-step step-5">
+            <span class="step-num">Level 5</span>
+            <span class="step-title">Clean One-Liner</span>
+            <span class="step-desc">Can it be written in a single clean idiomatic expression?</span>
+          </div>
+          <div class="ladder-step step-6">
+            <span class="step-num">Level 6</span>
+            <span class="step-title">Minimal Surgical Code</span>
+            <span class="step-desc">Only then write the minimum required implementation. Zero speculative abstractions.</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 4: Karpathy Rules -->
+      <section id="karpathy-rules" class="doc-section">
+        <h2>3. Karpathy Grounding Disciplines</h2>
+        <div class="grid grid-2">
+          <div class="card glass-card">
+            <h4>🧠 Think Before Coding</h4>
+            <p>State assumptions explicitly. Surface trade-offs before editing. If requirements are ambiguous, stop and ask rather than guessing silently.</p>
+          </div>
+          <div class="card glass-card">
+            <h4>🎯 Simplicity First</h4>
+            <p>Write the minimum code to solve the active issue. Zero speculative abstractions, single-use helper classes, or pre-emptive configurability.</p>
+          </div>
+          <div class="card glass-card">
+            <h4>✂️ Surgical Changes</h4>
+            <p>Touch ONLY lines necessary for the test to pass. Never reformat adjacent code, adjust unrelated comments, or delete untouched dead code.</p>
+          </div>
+          <div class="card glass-card">
+            <h4>🧪 Goal-Driven Execution</h4>
+            <p>Transform every task into an automated test. Write or run the failing test (Red), implement the patch (Green), verify deterministically.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 5: Single-Agent Default -->
+      <section id="single-agent" class="doc-section">
+        <h2>4. Multi-Agent Pragmatism (Single-Agent Default)</h2>
+        <div class="alert alert-warning">
+          <strong>Core Rule:</strong> Use <strong>1 agent by default</strong>. Never spin up multi-agent swarms simply because they are possible.
+        </div>
+        <p>Introduce secondary agents ONLY when there is a concrete technical reason:</p>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Task Scenario</th>
+              <th>Agent Structure</th>
+              <th>Justification</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Normal Bug / Feature</strong></td>
+              <td><code>1 Agent + Local Tests</code></td>
+              <td>Lowest latency, zero coordination token overhead.</td>
+            </tr>
+            <tr>
+              <td><strong>Major Architecture Shift</strong></td>
+              <td><code>Planner → Coder</code></td>
+              <td>Read-only plan mode prevents dirtying the repository before approval.</td>
+            </tr>
+            <tr>
+              <td><strong>High-Risk Core Changes</strong></td>
+              <td><code>Coder → Independent Reviewer</code></td>
+              <td>Adversarial second opinion using a different strong model.</td>
+            </tr>
+            <tr>
+              <td><strong>Security-Sensitive Work</strong></td>
+              <td><code>Coder → Strix AI (Sandbox) → Fixer</code></td>
+              <td>Dynamic PoC vulnerability validation in isolated worktree.</td>
+            </tr>
+            <tr>
+              <td><strong>Parallel Independent Tasks</strong></td>
+              <td><code>Orchestrator → Worktree Swarms</code></td>
+              <td>Physical directory isolation preventing merge conflicts.</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <!-- Section 6: Task Sizing -->
+      <section id="task-sizing" class="doc-section">
+        <h2>5. Task Sizing & Cline Plan/Act Split</h2>
+        <p>Every engineering task is classified into one of three sizes:</p>
+        <div class="grid grid-3">
+          <div class="card size-card">
+            <span class="size-badge">S — Small</span>
+            <h3>Direct Act Mode</h3>
+            <p>Typos, single-file bug fixes, test additions (&lt;20 lines touched).</p>
+            <ul>
+              <li>No planning document needed</li>
+              <li>Immediate surgical patch</li>
+              <li>Deterministic test verify</li>
+            </ul>
+          </div>
+          <div class="card size-card">
+            <span class="size-badge">M — Medium</span>
+            <h3>Plan → Act Mode</h3>
+            <p>Standard features, API routes, component builds (20–150 lines).</p>
+            <ul>
+              <li>Draft <code>implementation_plan.md</code></li>
+              <li>Human approval gate</li>
+              <li>Fleet Loop execution</li>
+            </ul>
+          </div>
+          <div class="card size-card">
+            <span class="size-badge">L — Large</span>
+            <h3>Research → Spec → Worktree</h3>
+            <p>Architectural shifts, new subsystems, migrations (&gt;150 lines).</p>
+            <ul>
+              <li>Socratic <code>/grill-me</code> interview</li>
+              <li>Isolated git worktree</li>
+              <li>Subagent execution & review</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 7: End-to-End Workflow -->
+      <section id="end-to-end" class="doc-section">
+        <h2>6. Universal End-to-End Workflow</h2>
+        <div class="timeline">
+          <div class="timeline-item">
+            <div class="timeline-marker">1</div>
+            <div class="timeline-content">
+              <h4>Task Ingestion & Notion Pull</h4>
+              <p>Task pulled from Notion Kanban (status <code>Ready</code>) or CLI brief. Classified as S, M, or L.</p>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-marker">2</div>
+            <div class="timeline-content">
+              <h4>Planning & Human Gate (M / L)</h4>
+              <p>Agent enters Plan Mode. If ambiguity exists, <code>/grill-me</code> resolves the decision tree. Human approves implementation plan.</p>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-marker">3</div>
+            <div class="timeline-content">
+              <h4>Worktree Isolation & WORKING.md</h4>
+              <p>Provisions physical worktree <code>brief/<slug></code> and initializes <code>WORKING.md</code> scratchpad.</p>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-marker">4</div>
+            <div class="timeline-content">
+              <h4>Fleet Loop TDD Execution</h4>
+              <p>Red-Green-Refactor loop with Ponytail ladder constraints and deterministic test runners.</p>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-marker">5</div>
+            <div class="timeline-content">
+              <h4>Security Review (Strix AI) & Code Review</h4>
+              <p>Security audit for sensitive endpoints in sandbox, followed by independent AST diff review.</p>
+            </div>
+          </div>
+          <div class="timeline-item">
+            <div class="timeline-marker">6</div>
+            <div class="timeline-content">
+              <h4>PR Creation & Notion Sync</h4>
+              <p>PR opened via <code>gh pr create</code>, Notion status transitions to <code>In Review</code>. Human merges and moves to <code>Done</code>.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 8: Fleet Loop -->
+      <section id="fleet-loop" class="doc-section">
+        <h2>7. Fleet Verification Loop</h2>
+        <p>A bounded, multi-stage adaptive verification engine replacing naive infinite fix loops:</p>
+        <div class="mermaid">
+graph LR
+    P[Patch] --> S1[1. Syntax & Types]
+    S1 -->|Pass| S2[2. Targeted Tests]
+    S2 -->|Pass| S3[3. Full Regression]
+    S3 -->|Pass| S4[4. AST Diff Check]
+    S4 -->|Pass| DONE[Complete]
+
+    S1 -->|Fail| CB{Attempts < 3?}
+    S2 -->|Fail| CB
+    S3 -->|Fail| CB
+    CB -->|Yes| FIX[Surgical Fix] --> P
+    CB -->|No: Hard Stop| ESC[Escalate to Human]
+
+    style S1 fill:#1e293b,stroke:#38bdf8
+    style DONE fill:#064e3b,stroke:#10b981
+    style ESC fill:#7f1d1d,stroke:#ef4444
+        </div>
+        <div class="alert alert-info">
+          <strong>Circuit Breaker Rule:</strong> Maximum 3 retry attempts. If the 3rd attempt fails, the loop terminates immediately, logs the failure in <code>WORKING.md</code>, and alerts the engineer. Zero token burn on endless loops.
+        </div>
+      </section>
+
+      <!-- Section 9: Model Router -->
+      <section id="model-router" class="doc-section">
+        <h2>8. Abstract Model-Routing Engine</h2>
+        <div class="alert alert-success">
+          <strong>Routing Philosophy:</strong> Never write <code>Task -> Gemini 3.x</code>. Always write <code>Task -> MODEL CLASS -> Available Provider/Model</code>.
+        </div>
+
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Task Class</th>
+              <th>Required Capability</th>
+              <th>Configured Models (Priority Fallback)</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>architecture</code></td>
+              <td>High Reasoning</td>
+              <td>Gemini 2.5 Pro → DeepSeek Reasoner (R1) → Ollama DeepSeek 32B</td>
+            </tr>
+            <tr>
+              <td><code>unfamiliar_repo</code></td>
+              <td>1M+ Context & Reasoning</td>
+              <td>Google Gemini 2.5 Flash (1,500 RPD)</td>
+            </tr>
+            <tr>
+              <td><code>normal_implementation</code></td>
+              <td>Coding & Tools</td>
+              <td>Gemini Flash → Mistral Codestral → Groq Llama 3.3 70B → Ollama Qwen 32B</td>
+            </tr>
+            <tr>
+              <td><code>small_fix</code></td>
+              <td>Low Reasoning (Fast/Cheap)</td>
+              <td>Groq Llama 3.3 (1,000 RPD) → Gemini Flash → Ollama Qwen 7B</td>
+            </tr>
+            <tr>
+              <td><code>tests</code></td>
+              <td>Fast Code Generation</td>
+              <td>Groq Llama 3.3 70B (500+ tok/s) → Mistral Codestral</td>
+            </tr>
+            <tr>
+              <td><code>review</code></td>
+              <td>Independent Adversarial Reasoning</td>
+              <td>DeepSeek Chat → Mistral Codestral → Gemini Pro</td>
+            </tr>
+            <tr>
+              <td><code>security</code></td>
+              <td>Specialized Security Reasoning</td>
+              <td>Gemini Pro → DeepSeek Reasoner + Strix AI</td>
+            </tr>
+            <tr>
+              <td><code>formatting</code></td>
+              <td>Deterministic Tool</td>
+              <td>Local Prettier / Black / Ruff</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>Configuration file: <code>~/.gemini/config/model_router.yaml</code></h3>
+        <pre><code class="language-yaml">tiers:
+  architecture:
+    capability: "high_reasoning"
+    preferred_models:
+      - provider: "gemini"
+        model: "gemini-2.5-pro"
+      - provider: "deepseek"
+        model: "deepseek-reasoner"
+      - provider: "ollama"
+        model: "deepseek-r1:32b"</code></pre>
+      </section>
+
+      <!-- Section 10: Security Sandbox -->
+      <section id="security-sandbox" class="doc-section">
+        <h2>9. Security Sandbox Review (Strix AI)</h2>
+        <p>Security-sensitive operations are audited in an isolated sandbox with automated Proof-of-Concept validation:</p>
+        <ul>
+          <li><strong>Isolated Worktree:</strong> <code>git worktree add ../sec-review-sandbox -b sec/audit</code></li>
+          <li><strong>SAST Pre-Scan:</strong> Semgrep / Bandit / ESLint Security scanner.</li>
+          <li><strong>Strix AI Attack Agent:</strong> Automated testing against OWASP Top 10 (Injection, BOLA/IDOR, Auth/JWT flaws, SSRF).</li>
+          <li><strong>PoC Verification:</strong> Fixes are only approved once Strix confirms the PoC no longer reproduces.</li>
+        </ul>
+      </section>
+
+      <!-- Section 11: Notion Kanban -->
+      <section id="notion-sync" class="doc-section">
+        <h2>10. Notion Kanban Integration</h2>
+        <p>Replaces legacy Microsoft Planner with Notion Kanban database synchronization:</p>
+        <div class="grid grid-2">
+          <div class="card glass-card">
+            <h4>Notion Database Schema</h4>
+            <ul>
+              <li><strong>Task Name</strong> (Title)</li>
+              <li><strong>Status</strong>: <code>Backlog</code>, <code>Ready</code>, <code>In Progress</code>, <code>In Review</code>, <code>Done</code>, <code>Blocked</code></li>
+              <li><strong>Mode</strong>: <code>AFK</code>, <code>HITL</code>, <code>Clarification</code></li>
+              <li><strong>Size</strong>: <code>S</code>, <code>M</code>, <code>L</code></li>
+              <li><strong>Priority</strong>: <code>P0</code>, <code>P1</code>, <code>P2</code>, <code>P3</code></li>
+              <li><strong>Branch</strong> & <strong>PR Link</strong></li>
+            </ul>
+          </div>
+          <div class="card glass-card">
+            <h4>Sync Invariants</h4>
+            <ul>
+              <li><strong>Agent Terminal State</strong>: <code>In Review</code></li>
+              <li><strong>The Done Gate</strong>: Only the human engineer transitions cards to <code>Done</code> after PR merge.</li>
+              <li><strong>Notion MCP</strong>: Standard tool call integration with local caching in <code>WORKING.md</code>.</li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- Section 12: MCP Suite -->
+      <section id="mcp-suite" class="doc-section">
+        <h2>11. MCP Suite Configuration</h2>
+        <p>Configured in <code>~/.gemini/config/mcp_config.json</code>:</p>
+        <pre><code class="language-json">{
+  "mcpServers": {
+    "sequential-thinking": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-sequential-thinking"]
+    },
+    "notion": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-notion"],
+      "env": { "NOTION_API_KEY": "${NOTION_API_KEY}" }
+    },
+    "github-mcp-server": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "-e", "GITHUB_PERSONAL_ACCESS_TOKEN", "ghcr.io/github/github-mcp-server"],
+      "env": { "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}" }
+    },
+    "strix-security": {
+      "command": "strix",
+      "args": ["mcp"],
+      "env": { "STRIX_API_KEY": "${STRIX_API_KEY}" }
+    }
+  }
+}</code></pre>
+      </section>
+
+      <!-- Section 13: Project Initializer -->
+      <section id="init-project" class="doc-section">
+        <h2>12. Universal Project Initializer (`init-project`)</h2>
+        <p>Bootstrap any new or existing repository with full Antigravity guardrails in seconds:</p>
+        <pre><code class="language-powershell"># Run from your target repository root:
+d:\projects\antigravity_setup\scripts\init-project.ps1 -ProjectName "my-project" -ProjectType "python" # or "typescript" / "fullstack"</code></pre>
+        <p>This automatically installs:</p>
+        <ul>
+          <li><code>.agents/rules/global_rules.md</code> (Ponytail, Karpathy, Affirm contracts)</li>
+          <li><code>AGENTS.md</code> and <code>CONSTITUTION.md</code></li>
+          <li><code>WORKING.md</code> active task scratchpad</li>
+          <li><code>scripts/verify.ps1</code> deterministic test gate</li>
+          <li><code>.githooks/pre-commit</code> verification hook</li>
+        </ul>
+      </section>
+
+    </main>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

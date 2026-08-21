@@ -1,0 +1,131 @@
+# 🧭 Antigravity Abstract Model-Routing Configuration (2026)
+# Philosophy: Task -> MODEL CLASS -> Available Provider / Model
+
+version: "2026.1"
+
+# 1. Abstract Capability Tiers
+tiers:
+  architecture:
+    capability: "high_reasoning"
+    preferred_models:
+      - provider: "gemini"
+        model: "gemini-2.5-pro"
+      - provider: "deepseek"
+        model: "deepseek-reasoner"
+      - provider: "openrouter"
+        model: "deepseek/deepseek-r1:free"
+      - provider: "ollama"
+        model: "deepseek-r1:32b"
+
+  unfamiliar_repo:
+    capability: "high_reasoning_and_context"
+    preferred_models:
+      - provider: "gemini"
+        model: "gemini-2.5-flash"
+      - provider: "gemini"
+        model: "gemini-3-flash-preview"
+
+  normal_implementation:
+    capability: "coding_and_tools"
+    preferred_models:
+      - provider: "gemini"
+        model: "gemini-2.5-flash"
+      - provider: "mistral"
+        model: "codestral-latest"
+      - provider: "groq"
+        model: "llama-3.3-70b-versatile"
+      - provider: "ollama"
+        model: "qwen2.5-coder:32b-instruct"
+
+  small_fix:
+    capability: "low_reasoning_cheap"
+    preferred_models:
+      - provider: "groq"
+        model: "llama-3.3-70b-versatile"
+      - provider: "gemini"
+        model: "gemini-2.5-flash"
+      - provider: "ollama"
+        model: "qwen2.5-coder:7b"
+
+  tests:
+    capability: "fast_code_generation"
+    preferred_models:
+      - provider: "groq"
+        model: "llama-3.3-70b-versatile"
+      - provider: "mistral"
+        model: "codestral-latest"
+      - provider: "ollama"
+        model: "qwen2.5-coder:14b"
+
+  documentation:
+    capability: "low_reasoning_local_or_cheap"
+    preferred_models:
+      - provider: "groq"
+        model: "llama-3.1-8b-instant"
+      - provider: "ollama"
+        model: "llama3.2:3b"
+
+  repetitive_migration:
+    capability: "cheap_batch_worker"
+    preferred_models:
+      - provider: "groq"
+        model: "llama-3.3-70b-versatile"
+      - provider: "ollama"
+        model: "qwen2.5-coder:14b"
+
+  review:
+    capability: "independent_adversarial_reasoning"
+    preferred_models:
+      - provider: "deepseek"
+        model: "deepseek-chat"
+      - provider: "mistral"
+        model: "codestral-latest"
+      - provider: "gemini"
+        model: "gemini-2.5-pro"
+
+  security:
+    capability: "specialized_security_reasoning"
+    preferred_models:
+      - provider: "gemini"
+        model: "gemini-2.5-pro"
+      - provider: "deepseek"
+        model: "deepseek-reasoner"
+
+  formatting:
+    capability: "deterministic_tool"
+    preferred_models:
+      - provider: "local_tool"
+        command: "prettier / black / ruff"
+
+# 2. Provider Endpoints & Local Fallback
+providers:
+  gemini:
+    base_url: "https://generativelanguage.googleapis.com/v1beta"
+    api_key_env: "GEMINI_API_KEY"
+    free_daily_limit: 1500
+
+  groq:
+    base_url: "https://api.groq.com/openai/v1"
+    api_key_env: "GROQ_API_KEY"
+    free_daily_limit: 1000
+
+  mistral:
+    base_url: "https://api.mistral.ai/v1"
+    api_key_env: "MISTRAL_API_KEY"
+    free_daily_limit: "free_tier"
+
+  deepseek:
+    base_url: "https://api.deepseek.com/v1"
+    api_key_env: "DEEPSEEK_API_KEY"
+    free_daily_limit: "free_tier"
+
+  openrouter:
+    base_url: "https://openrouter.ai/api/v1"
+    api_key_env: "OPENROUTER_API_KEY"
+    free_daily_limit: "unlimited_free_models"
+
+  ollama:
+    base_url: "http://localhost:11434/v1"
+    api_key_env: "none"
+    free_daily_limit: "unlimited_local"
+    notes: "Local offline fallback: qwen2.5-coder:32b or deepseek-r1:32b"
