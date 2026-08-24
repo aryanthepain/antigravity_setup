@@ -1,6 +1,6 @@
 export interface Skill {
   name: string;
-  category: 'core' | 'workflow' | 'testing' | 'security' | 'integration' | 'scaffolding' | 'cloud' | 'devtools' | 'flutter' | 'science';
+  category: 'core' | 'frontend' | 'workflow' | 'testing' | 'security' | 'integration' | 'scaffolding' | 'cloud' | 'devtools' | 'flutter' | 'science';
   badge: string;
   trigger: string;
   description: string;
@@ -13,6 +13,7 @@ export interface Skill {
 export const SKILL_CATEGORIES = [
   { id: 'all', label: 'All Skills', icon: '⚡' },
   { id: 'core', label: 'Core Engineering', icon: '🧠' },
+  { id: 'frontend', label: 'Frontend & UI Design', icon: '🎨' },
   { id: 'workflow', label: 'Workflow & Planning', icon: '📋' },
   { id: 'testing', label: 'Testing & Verification', icon: '🧪' },
   { id: 'security', label: 'Security & Sandbox', icon: '🛡️' },
@@ -31,9 +32,9 @@ export const SKILLS_DATA: Skill[] = [
     category: "core",
     badge: "Always On",
     trigger: "Always active in every session. Triggers on any coding, planning, or execution task.",
-    description: "Enforces Affirm 1-Task 1-PR delivery contract, single-agent default, Ponytail ladder, Karpathy surgical edits, and Fleet loop 3-retry bounds.",
+    description: "Enforces Affirm 1-Task 1-PR delivery contract, default subagent orchestration, mandatory grilling, Ponytail ladder, Karpathy surgical edits, and Fleet loop 3-retry bounds.",
     command: "Always active (~/.gemini/config/rules/global_rules.md)",
-    details: "1. Affirm Contract: 1 Task -> 1 Agent Session -> 1 PR.\n2. Single Agent Default: 1 agent for normal tasks; subagents only for parallelism/sandbox.\n3. Ponytail Ladder: YAGNI -> Stdlib -> Platform -> Dependency -> One-Liner -> Minimal Code.\n4. Karpathy Grounding: Think first, surgical edits, goal-driven tests.\n5. Deterministic Verification: verify.ps1 with max 3 retry attempts.\n6. Skill Authoring: Natural language trigger descriptions.",
+    details: "1. Affirm Contract: 1 Task -> 1 Agent Session -> 1 PR.\n2. Subagent Orchestration: Chief Orchestrator stays ultra-lean (<600 tokens); delegates heavy tasks to node ./scripts/subagent.js.\n3. Mandatory Grilling: User prompts go through Gate 1 planning before code changes.\n4. Ponytail Ladder: YAGNI -> Stdlib -> Platform -> Dependency -> One-Liner -> Minimal Code.\n5. Karpathy Grounding: Think first, surgical edits, goal-driven tests.\n6. Deterministic Verification: verify.ps1 with max 3 retry attempts.",
     antiTriggers: "Never disable global invariants.",
     sourceFile: "~/.gemini/config/rules/global_rules.md"
   },
@@ -93,6 +94,58 @@ export const SKILLS_DATA: Skill[] = [
     description: "Advanced agentic behavioral patterns, composable skill chains, and defensive verification harnesses from the obra/superpowers methodology.",
     command: "Skill",
     details: "1. Context Grounding: Never act on assumptions — inspect first.\n2. Defensive Verification: Every state mutation must have an observable proof of success.\n3. Composable Chains: Connect single-purpose skills into unified pipelines."
+  },
+
+  // FRONTEND & UI DESIGN
+  {
+    name: "frontend-design",
+    category: "frontend",
+    badge: "Primitives & Motion",
+    trigger: "Trigger on mentions of: 'website', 'build website', 'landing page', 'studio quality website', 'frontend', 'web design', 'ui', 'ux', 'component', 'styling', 'css', 'react', 'nextjs', 'vite', 'html', 'tailwind', 'dialog', 'modal', 'menu', 'dropdown', 'navbar', 'dashboard', 'theme', 'shadecn', 'shadcn', 'radix', 'base ui', 'kokonut', 'kokonut ui', 'motion', 'motion dev', 'motion.dev', 'framer motion', 'anime js', 'anime.js', 'animejs', 'manus', 'manus lm', 'manus design', 'agentic web design', 'animate', 'micro-interactions', 'drag interaction', 'layout transitions', 'smooth animations', 'spring animations', or 'frontend design'.",
+    description: "Master frontend engineering skill enforcing primitives-first component architecture (shadcn/ui, Kokonut UI, Radix UI, Base UI), declarative animation engines (Motion/motion.dev, Anime.js), Manus-grade studio website doctrines, and accessible design tokens.",
+    command: "Skill / Always on for UI",
+    details: "- Primitives & Components: shadcn/ui, Radix UI, Base UI, and Kokonut UI ready-made animated blocks.\n- Motion & Animation: Motion (motion.dev / framer-motion) for spring physics, layout morphing, and drag gestures; Anime.js for SVG path drawing and complex timelines.\n- Manus Studio Doctrine: Multi-layered spatial depth, fluid responsive typography, narrative scroll storytelling, and zero-slop anti-vibecoding standards.\n- Tokens & QA: Standard HSL tokens, 4px/8px grids, WCAG AA contrast, and mobile-responsive viewport testing.",
+    sourceFile: "~/.gemini/config/skills/frontend-design/SKILL.md"
+  },
+  {
+    name: "taste-skill",
+    category: "frontend",
+    badge: "Anti-Slop Taste",
+    trigger: "Trigger on mentions of: 'taste skill', 'design taste', 'make it look premium', 'stop looking crappy', 'anti-slop', 'aesthetic polish', 'design variance', 'linear style', 'stripe design', or 'apple aesthetics'.",
+    description: "Treats design judgment as an executable constraint with numeric dials (Variance, Motion, Density), anti-slop rules, and premium reference archetypes (Linear, Stripe, Apple, Raycast).",
+    command: "Skill",
+    details: "- Numeric Dials: Design Variance (1-10), Motion Intensity (1-10), Visual Density (1-10).\n- Anti-Slop: Eliminates generic indigo gradients, excessive drop shadows, and uninspired layouts.\n- Archetypes: Linear (dense obsidian), Stripe (refined typography), Apple (effortless spaciousness).",
+    sourceFile: "~/.gemini/config/skills/taste-skill/SKILL.md"
+  },
+  {
+    name: "web-design-guidelines",
+    category: "frontend",
+    badge: "Vercel UI Audit",
+    trigger: "Trigger on mentions of: 'web design guidelines', 'audit ui', 'audit frontend', 'check design rules', 'catch broken ui', 'vercel design guidelines', 'ui audit', or 'pre-ship design check'.",
+    description: "Audits frontend code against Vercel Web Interface Guidelines, checking contrast ratios, focus rings, mobile font sizing, touch targets, and layout stability.",
+    command: "Skill",
+    details: "Produces actionable file:line audit reports checking accessibility, interactive focus states, mobile input zoom prevention, and layout shift risks.",
+    sourceFile: "~/.gemini/config/skills/web-design-guidelines/SKILL.md"
+  },
+  {
+    name: "awesome-design",
+    category: "frontend",
+    badge: "Design Systems",
+    trigger: "Trigger on mentions of: 'awesome design', 'design system', 'design tokens', 'color palette', 'typography scale', 'spacing scale', 'component tokens', or 'design blueprint'.",
+    description: "Pre-baked design systems and DESIGN.md blueprints featuring curated color harmonies (Obsidian Titanium, Warm Editorial), typography scales, 4px/8px grids, and button variants.",
+    command: "Skill",
+    details: "Provides complete color tokens, type hierarchy pairings (Display, Heading, Body, Micro), spacing scales, and standard button/card variant contracts.",
+    sourceFile: "~/.gemini/config/skills/awesome-design/SKILL.md"
+  },
+  {
+    name: "image-2-code",
+    category: "frontend",
+    badge: "Visual to Code",
+    trigger: "Trigger on mentions of: 'image 2 code', 'image to code', 'screenshot to code', 'build from image', 'replicate this design', 'turn screenshot into code', or 'mockup to code'.",
+    description: "Translates visual design screenshots, wireframes, and UI mockups into pixel-accurate, accessible React/Tailwind/CSS components without losing design details.",
+    command: "Skill",
+    details: "Systematic decomposition: Container layout -> Component boundaries -> Color & Type tokens -> Primitive selection -> Production React code.",
+    sourceFile: "~/.gemini/config/skills/image-2-code/SKILL.md"
   },
 
   // WORKFLOW
@@ -161,6 +214,16 @@ export const SKILLS_DATA: Skill[] = [
   },
 
   // TESTING
+  {
+    name: "playwright-cli",
+    category: "testing",
+    badge: "Browser Testing",
+    trigger: "Trigger on mentions of: 'playwright cli', 'test in browser', 'take page screenshot', 'catch broken ui', 'inspect rendered page', 'verify ui visually', 'browser snapshot', or 'playwright test'.",
+    description: "Lightweight browser automation for capturing accessibility snapshots, verifying layout rendering, and capturing screenshots before shipping.",
+    command: "Skill / CLI",
+    details: "Automates browser launch, viewport resizing, element screenshot captures, and layout shift detection.",
+    sourceFile: "~/.gemini/config/skills/playwright-cli/SKILL.md"
+  },
   {
     name: "fleet-loop",
     category: "testing",

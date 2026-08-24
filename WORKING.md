@@ -1,27 +1,32 @@
 # Ephemeral Task Scratchpad
 
 ## Current Objective
-- **Task**: Antigravity 2026 Docs & Control Center Web App + Repository Cleanup
+- **Task**: Implement Asymmetric Subagent Delegation Engine & Fix Orchestrator Context Bloat
 - **Status**: **100% DONE & OPERATIONAL**
 
-## Verified System Stack
-- **Modern Docs & Control Center Web Application**:
-  - Located at [`docs/`](file:///d:/projects/antigravity_setup/docs/)
-  - Tech Stack: **Vite + React 18 + TailwindCSS + Lucide Icons + TypeScript**
-  - Production build: `npm run build` compiled cleanly into `docs/dist/` (0 errors)
-  - Features:
-    - ⚡ **Interactive Skills Catalog**: 53+ skills with category filters, natural language trigger matcher, and copyable prompt snippets.
-    - 🔌 **MCP Servers & Tools Hub**: 14 servers, 104+ tool schemas with parameter inspector and interactive test payload JSON builder.
-    - 🏛️ **Architecture & Model Router**: 5-tier fallback cascade visualizer, Ponytail Laziness Ladder, and behavioral invariants.
-    - 🛠️ **Agent Prompt Generator**: Drag-and-select interface to construct custom agent instructions and slash commands.
-    - 📖 **Interactive Setup Guide**: Embedded step-by-step replication manual with copyable code snippets.
-    - 🔍 **Command Palette**: Instant `Ctrl+K` / `⌘K` global search across skills, tools, and schemas.
-    - 🌓 **Theme Switcher**: Dark/Light mode toggle with persistence.
-- **Continuous Deployment**:
-  - [`.github/workflows/deploy-docs.yml`](file:///d:/projects/antigravity_setup/.github/workflows/deploy-docs.yml) builds Vite static bundle and deploys to **GitHub Pages** on every push.
-- **Repository Consolidation & Hygiene**:
-  - Unified setup guide created at [`SETUP_GUIDE.md`](file:///d:/projects/antigravity_setup/SETUP_GUIDE.md).
-  - Cleaned up obsolete scratch implementation logs (`claude_impl.md`, `gemini_impl.md`, `implementation_plan.md`, `zero_budget_ai_coding_system_implementation_plan.md`).
-- **Deterministic Verification Gates**:
-  - `pwsh -File .\scripts\verify.ps1` -> **PASSED (Exit Code 0)**
-  - `pwsh -File .\scripts\Reconcile-IssueNumbers.ps1 -Check` -> **PASSED (0 Collisions)**
+## Root Cause Analysis
+1. **The Issue**: In Antigravity IDE, the primary conversation model (Gemini 3.7 Flash) was directly reading entire multi-hundred-line files, running large grep queries, generating code in-context, and reviewing diffs, causing context inflation and rate-limit risks.
+2. **Missing Bridge**: While `global_rules.md` specified an ultra-lean orchestrator and `invoke_subagent`, Antigravity IDE did not provide a native `invoke_subagent` tool in its schema, forcing the model into monolithic single-agent behavior.
+
+## Implemented Solution
+1. **Asymmetric Worker Subagent Runner (`scripts/subagent.js` & `~/.gemini/config/scripts/subagent.js`)**:
+   - Zero-dependency Node.js CLI engine that connects to Groq LPU (Llama 3.3 70B @ 500 tok/s), Mistral Codestral, Google Gemini Flash, and OpenRouter.
+   - Supports 5 dedicated task modes:
+     - `--task research --query "..." --files "..."`: Reads files off-context and returns <250 token structured summary.
+     - `--task code --prompt "..." --file "..."`: Offloads code generation to Mistral Codestral / Groq.
+     - `--task review --diff`: Runs independent pre-PR adversarial code reviews.
+     - `--task compress --file "..."`: Compresses 1000+ line terminal/test logs to 3-line root-cause summaries.
+     - `--task ask --tier [fast|code|reasoning|cheap]`: Direct tier query.
+2. **PowerShell Wrapper (`scripts/Invoke-Subagent.ps1` & `~/.gemini/config/scripts/Invoke-Subagent.ps1`)**:
+   - Fast PowerShell interface for subagent invocation.
+3. **Global Behavioral Invariants Updated (`~/.gemini/config/rules/global_rules.md`)**:
+   - Explicitly instructs all Antigravity agent sessions to execute subagent tasks via `node .\scripts\subagent.js` to preserve the <600 token active orchestrator context.
+4. **Dedicated Custom Skill (`~/.gemini/config/skills/asymmetric-delegation/SKILL.md`)**:
+   - Comprehensive documentation and triggering rules for subagent delegation.
+5. **Interactive Control Center Web App (`docs/`)**:
+   - Updated `ArchitectureView.tsx` with Subagent Runner documentation, live CLI commands, and routing cascade.
+
+## Deterministic Verification Gates
+- `node .\scripts\subagent.js --task ask -p "..."` -> **PASSED (Mistral Codestral / Groq LPU response)**
+- `node .\scripts\subagent.js --task research --query "..." --files "master_blueprint_2026.md"` -> **PASSED (Off-context extraction)**
+- `pwsh -File .\scripts\verify.ps1` -> **PASSED (Exit Code 0)**

@@ -305,6 +305,23 @@ Triggers native Windows system sound alerts upon task completion or human approv
 pwsh -File .\scripts\agent-alarm.ps1 -Type Success -SoundOnly
 ```
 
+### 4. Asymmetric Subagent Runner (`scripts/subagent.js` & `Invoke-Subagent.ps1`)
+Delegates token-heavy research, code generation, adversarial reviews, and log compression to submodels:
+
+```powershell
+# Research / multi-file inspection off-context:
+node .\scripts\subagent.js --task research --query "Explain auth logic" --files "src/auth.ts,src/server.ts"
+
+# Surgical code generation:
+node .\scripts\subagent.js --task code --prompt "Write a debounce utility" --file "src/utils.ts"
+
+# Pre-PR adversarial code review:
+node .\scripts\subagent.js --task review --diff
+
+# Long log compression:
+node .\scripts\subagent.js --task compress --file "test.log"
+```
+
 ---
 
 ## 8. Interactive Docs & Control Center App

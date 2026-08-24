@@ -12,14 +12,14 @@ import { SKILLS_DATA, Skill } from './data/skillsData';
 import { McpServer, McpTool, TOTAL_MCP_TOOLS_COUNT } from './data/mcpData';
 
 export const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<ActiveTab>('skills');
+  const [activeTab, setActiveTab] = useState<ActiveTab>('generator');
   const [isDark, setIsDark] = useState<boolean>(true);
   const [isSearchOpen, setIsSearchOpen] = useState<boolean>(false);
   const [selectedSkill, setSelectedSkill] = useState<Skill | null>(null);
   const [selectedMcpServer, setSelectedMcpServer] = useState<McpServer | null>(null);
   const [selectedMcpTool, setSelectedMcpTool] = useState<McpTool | null>(null);
 
-  // Keyboard shortcut for Cmd/Ctrl+K
+  // Keyboard shortcut for Cmd/Ctrl+K and '/'
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
@@ -53,7 +53,7 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans">
+    <div className="min-h-screen bg-background text-foreground flex flex-col font-sans bg-mesh-dark">
       {/* Top Navbar */}
       <Navbar
         activeTab={activeTab}
@@ -67,33 +67,38 @@ export const App: React.FC = () => {
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {activeTab === 'generator' && <PromptGeneratorView />}
         {activeTab === 'skills' && <SkillsView onSelectSkill={(skill) => setSelectedSkill(skill)} />}
         {activeTab === 'mcp' && <McpView onSelectTool={handleSelectTool} />}
         {activeTab === 'architecture' && <ArchitectureView />}
-        {activeTab === 'generator' && <PromptGeneratorView />}
         {activeTab === 'setup' && <SetupGuideView />}
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-border bg-card/60 mt-12 py-6 text-center text-xs text-muted-foreground">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <footer className="border-t border-border/60 bg-card/40 backdrop-blur-md mt-16 py-8 text-center text-xs text-muted-foreground">
+        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-foreground">Antigravity 2026</span>
+            <span className="font-extrabold text-foreground bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-blue-400">
+              Antigravity 2026
+            </span>
             <span>•</span>
             <span>Zero-Budget Autonomous AI Engineering</span>
           </div>
           <div className="flex items-center gap-4">
-            <button onClick={() => setActiveTab('setup')} className="hover:text-foreground transition-colors">
-              Setup Guide
+            <button onClick={() => setActiveTab('generator')} className="hover:text-cyan-400 transition-colors">
+              Agent Builder
             </button>
-            <button onClick={() => setActiveTab('architecture')} className="hover:text-foreground transition-colors">
+            <button onClick={() => setActiveTab('skills')} className="hover:text-cyan-400 transition-colors">
+              Skills Directory
+            </button>
+            <button onClick={() => setActiveTab('architecture')} className="hover:text-cyan-400 transition-colors">
               Ponytail Ladder
             </button>
             <a
               href="https://github.com/aryanthepain"
               target="_blank"
               rel="noreferrer"
-              className="text-blue-400 hover:underline"
+              className="text-cyan-400 hover:underline"
             >
               @aryanthepain
             </a>

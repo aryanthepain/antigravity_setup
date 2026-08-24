@@ -131,49 +131,75 @@ fallback_chain: ["gemini", "groq", "mistral", "openrouter"]`;
         </div>
       </div>
 
-      {/* Behavioral Invariants & OmniRoute Gateway */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Invariants */}
-        <div className="glass-card rounded-2xl p-6 border border-border space-y-4">
-          <h3 className="font-bold text-foreground text-sm flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 text-emerald-400" />
-            <span>Behavioral Invariants & Karpathy Disciplines</span>
-          </h3>
-          <div className="space-y-3">
-            {BEHAVIORAL_INVARIANTS.map((inv, idx) => (
-              <div key={idx} className="bg-muted/40 p-3.5 rounded-xl border border-border space-y-1">
-                <h4 className="text-xs font-bold text-foreground">{inv.title}</h4>
-                <p className="text-xs text-muted-foreground leading-relaxed">{inv.description}</p>
+        {/* Behavioral Invariants & Subagent Runner Engine */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Invariants */}
+          <div className="glass-card rounded-2xl p-6 border border-border space-y-4">
+            <h3 className="font-bold text-foreground text-sm flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+              <span>Behavioral Invariants & Karpathy Disciplines</span>
+            </h3>
+            <div className="space-y-3">
+              {BEHAVIORAL_INVARIANTS.map((inv, idx) => (
+                <div key={idx} className="bg-muted/40 p-3.5 rounded-xl border border-border space-y-1">
+                  <h4 className="text-xs font-bold text-foreground">{inv.title}</h4>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{inv.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Subagent Runner Engine */}
+          <div className="glass-card rounded-2xl p-6 border border-border space-y-4 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-bold text-foreground text-sm flex items-center gap-2">
+                  <Terminal className="w-4 h-4 text-emerald-400" />
+                  <span>Asymmetric Subagent Delegation Engine</span>
+                </h3>
+                <span className="text-[10px] font-mono font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                  scripts/subagent.js
+                </span>
               </div>
-            ))}
+              <p className="text-xs text-muted-foreground mb-3">
+                Offloads token-heavy operations (multi-file scans, code drafting, pre-PR reviews, log compression) to worker submodels, returning ultra-lean summaries (&lt;250 tokens).
+              </p>
+              <div className="space-y-2 font-mono text-xs text-emerald-300 bg-background/90 p-4 rounded-xl border border-border overflow-x-auto">
+                <div className="text-muted-foreground text-[11px]">// 1. Multi-file Codebase Research (offloads 20k tokens)</div>
+                <div>node .\scripts\subagent.js --task research --query "Explain auth logic" --files "src/auth.ts,src/server.ts"</div>
+                <div className="text-muted-foreground text-[11px] pt-1">// 2. Precision Code Generation (Mistral Codestral)</div>
+                <div>node .\scripts\subagent.js --task code --prompt "Add UUID generator" --file "src/utils.ts"</div>
+                <div className="text-muted-foreground text-[11px] pt-1">// 3. Pre-PR Independent Adversarial Review</div>
+                <div>node .\scripts\subagent.js --task review --diff</div>
+                <div className="text-muted-foreground text-[11px] pt-1">// 4. Verbose Log Compression</div>
+                <div>node .\scripts\subagent.js --task compress --file "test.log"</div>
+              </div>
+            </div>
           </div>
         </div>
 
         {/* OmniRoute Config Copier */}
-        <div className="glass-card rounded-2xl p-6 border border-border space-y-4 flex flex-col justify-between">
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="font-bold text-foreground text-sm flex items-center gap-2">
-                <Terminal className="w-4 h-4 text-blue-400" />
-                <span>OmniRoute Local Proxy Gateway</span>
-              </h3>
-              <button
-                onClick={handleCopyConfig}
-                className="flex items-center gap-1 px-2.5 py-1 rounded bg-background hover:bg-muted border border-border text-[11px] text-muted-foreground transition-all"
-              >
-                {copiedConfig ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{copiedConfig ? 'Copied' : 'Copy config.yaml'}</span>
-              </button>
-            </div>
-            <p className="text-xs text-muted-foreground mb-3">
-              Configured at <code className="text-foreground">~/.omniroute/config.yaml</code> to route all agent LLM calls through localhost:20128 with token context compression.
-            </p>
-            <pre className="bg-background/90 p-4 rounded-xl border border-border font-mono text-xs text-blue-300 overflow-x-auto max-h-[300px]">
-              {omnirouteYaml}
-            </pre>
+        <div className="glass-card rounded-2xl p-6 border border-border space-y-4">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="font-bold text-foreground text-sm flex items-center gap-2">
+              <Cpu className="w-4 h-4 text-blue-400" />
+              <span>OmniRoute Local Proxy Gateway Configuration</span>
+            </h3>
+            <button
+              onClick={handleCopyConfig}
+              className="flex items-center gap-1 px-2.5 py-1 rounded bg-background hover:bg-muted border border-border text-[11px] text-muted-foreground transition-all"
+            >
+              {copiedConfig ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{copiedConfig ? 'Copied' : 'Copy config.yaml'}</span>
+            </button>
           </div>
+          <p className="text-xs text-muted-foreground mb-3">
+            Configured at <code className="text-foreground">~/.omniroute/config.yaml</code> to route all agent LLM calls through localhost:20128 with token context compression.
+          </p>
+          <pre className="bg-background/90 p-4 rounded-xl border border-border font-mono text-xs text-blue-300 overflow-x-auto max-h-[250px]">
+            {omnirouteYaml}
+          </pre>
         </div>
       </div>
-    </div>
-  );
-};
+    );
+  };
