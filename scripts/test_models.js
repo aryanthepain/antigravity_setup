@@ -5,9 +5,12 @@ async function testGemini(apiKey) {
   if (!apiKey) return { provider: "Google AI Studio", model: "gemini-3.6-flash", status: "SKIPPED", error: "Missing key" };
   const start = Date.now();
   try {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`, {
+    const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": apiKey
+      },
       body: JSON.stringify({
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: { maxOutputTokens: 150 }
