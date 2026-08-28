@@ -29,11 +29,34 @@ $keys = @(
     @{ Name = "STRIX_API_KEY"; Tier = "Strix AI (Penetration Testing)"; Source = "https://usestrix.com/"; Required = $false }
 )
 
-if ($SetKey -and $Value) {
+# Allowed environment variables whitelist (prevents arbitrary variable tampering)
+$allowedKeyNames = @(
+    $keys.Name + @("NOTION_API_KEY", "GITHUB_PERSONAL_ACCESS_TOKEN", "ANTIMETAL_API_KEY")
+)
+
+if ($SetKey) {
+    if ($allowedKeyNames -notcontains $SetKey) {
+        Write-Error "❌ Security Error: '$SetKey' is not an allowed API key variable. Operation aborted."
+        exit 1
+    }
+
+    if (-not $Value) {
+        # Secure interactive prompt to prevent shell history leakage
+        $secureInput = Read-Host -Prompt "Enter value for $SetKey" -AsSecureString
+        $BSTR = [System.Runtime.InteropServices.Marshal]::SecureStringToBSTR($secureInput)
+        $Value = [System.Runtime.InteropServices.Marshal]::PtrToStringAuto($BSTR)
+        [System.Runtime.InteropServices.Marshal]::ZeroFreeBSTR($BSTR)
+    }
+
+    if ([string]::IsNullOrWhiteSpace($Value)) {
+        Write-Error "❌ Error: Key value cannot be empty."
+        exit 1
+    }
+
     [System.Environment]::SetEnvironmentVariable($SetKey, $Value, "User")
     [System.Environment]::SetEnvironmentVariable($SetKey, $Value, "Process")
     
-    # Mirror Notion key aliases for full compatibility
+    # Mirror Notion and GitHub key aliases for full compatibility
     if ($SetKey -eq "NOTION_API_TOKEN") {
         [System.Environment]::SetEnvironmentVariable("NOTION_API_KEY", $Value, "User")
         [System.Environment]::SetEnvironmentVariable("NOTION_API_KEY", $Value, "Process")
@@ -64,7 +87,7 @@ foreach ($k in $keys) {
     if (-not $val) { $val = $procVars[$name] }
 
     if ($val) {
-        $previewLen = [Math]::Min(6, $val.Length)
+        $previewLen = [Math]::Min(4, $val.Length)
         $preview = $val.Substring(0, $previewLen) + "..."
         Write-Host "  [OK]  $($name.PadRight(22)) : Configured ($preview) - $($k.Tier)" -ForegroundColor Green
     } else {
@@ -73,6 +96,6 @@ foreach ($k in $keys) {
     }
 }
 
-Write-Host "`nHow to set a key permanently in Windows User environment:" -ForegroundColor Gray
-Write-Host "   pwsh -File .\scripts\setup-keys.ps1 -SetKey GITHUB_TOKEN -Value '<your-token>'" -ForegroundColor Cyan
-Write-Host "   Or: [System.Environment]::SetEnvironmentVariable('NOTION_API_TOKEN', '<key>', 'User')`n" -ForegroundColor Gray
+Write-Host "`nHow to securely set a key in Windows User environment (interactive masked entry):" -ForegroundColor Gray
+Write-Host "   pwsh -File .\scripts\setup-keys.ps1 -SetKey GITHUB_TOKEN" -ForegroundColor Cyan
+Write-Host "   (Omit -Value to avoid recording secrets in PowerShell command history)`n" -ForegroundColor Gray
