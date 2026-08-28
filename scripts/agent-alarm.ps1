@@ -109,11 +109,11 @@ if (-not $SoundOnly -and -not [string]::IsNullOrWhiteSpace($Message)) {
             }
         } elseif ($IsMacOS) {
             if (Get-Command say -ErrorAction SilentlyContinue) {
-                Start-Process "say" -ArgumentList "`"$Message`"" -NoNewWindow
+                Start-Process "say" -ArgumentList @($Message) -NoNewWindow
             }
         } elseif ($IsLinux) {
             if (Get-Command spd-say -ErrorAction SilentlyContinue) {
-                Start-Process "spd-say" -ArgumentList "`"$Message`"" -NoNewWindow
+                Start-Process "spd-say" -ArgumentList @($Message) -NoNewWindow
             }
         }
     } catch {

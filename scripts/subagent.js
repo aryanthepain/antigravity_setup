@@ -19,10 +19,37 @@ const fs = require('fs');
 const path = require('path');
 const { execSync } = require('child_process');
 
+// Path Traversal Security Guard: restricts file access strictly within current working directory
+function isSafePath(filePath) {
+  if (!filePath || typeof filePath !== 'string') return false;
+  if (filePath.indexOf('\0') !== -1) return false;
+  const cwd = path.resolve(process.cwd());
+  const resolved = path.resolve(cwd, filePath);
+  const relative = path.relative(cwd, resolved);
+  return !relative.startsWith('..') && !path.isAbsolute(relative);
+}
+
+function readSafeFile(filePath) {
+  if (!isSafePath(filePath)) {
+    console.warn(`⚠️ [Security Warning] Path traversal blocked: '${filePath}' is outside workspace.`);
+    return null;
+  }
+  const resolved = path.resolve(process.cwd(), filePath);
+  try {
+    if (fs.existsSync(resolved) && fs.statSync(resolved).isFile()) {
+      return fs.readFileSync(resolved, 'utf-8');
+    }
+  } catch (e) {
+    return null;
+  }
+  return null;
+}
+
 // Parse CLI arguments
 function parseArgs() {
   const args = process.argv.slice(2);
   const params = {
+    help: false,
     task: 'ask',
     query: '',
     prompt: '',
@@ -38,10 +65,11 @@ function parseArgs() {
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
-    if (arg === '--task' || arg === '-t') params.task = args[++i];
+    if (arg === '--help' || arg === '-h') params.help = true;
+    else if (arg === '--task' || arg === '-t') params.task = args[++i];
     else if (arg === '--query' || arg === '-q') params.query = args[++i];
     else if (arg === '--prompt' || arg === '-p') params.prompt = args[++i];
-    else if (arg === '--files') params.files = args[++i].split(',').map(s => s.trim());
+    else if (arg === '--files') params.files = (args[++i] || '').split(',').map(s => s.trim()).filter(Boolean);
     else if (arg === '--file' || arg === '-f') params.file = args[++i];
     else if (arg === '--diff' || arg === '-d') params.diff = true;
     else if (arg === '--tier') params.tier = args[++i];
@@ -53,6 +81,50 @@ function parseArgs() {
   }
 
   return params;
+}
+
+function printHelp() {
+  console.log(`
+🤖 Antigravity Asymmetric Subagent Runner (2026)
+
+Purpose:
+  Delegates token-heavy tasks (research, code drafting, adversarial reviews,
+  and log compression) to ultra-fast submodels without bloating the primary
+  Orchestrator context window (<600 tokens active state).
+
+Usage:
+  node ./scripts/subagent.js [options]
+  node ./scripts/subagent.js --task <task> [options]
+
+Tasks:
+  research, explore   Inspect code files/context and extract concise findings (<250 tokens).
+  code, patch         Surgical code generation / patch drafting following Ponytail rules.
+  review, adversarial Independent adversarial review on git diff or specific files.
+  compress, logs      Compress verbose terminal or test runner logs down to root causes & 1-line fix.
+  ask (default)       General fast queries or lightweight assistant responses.
+
+Options:
+  -t, --task <type>       Task mode: research | code | review | compress | ask (default: ask)
+  -q, --query <string>    Research query or search question
+  -p, --prompt <string>   Prompt instructions for code, ask, or compress
+  -f, --file <path>       Target file path to inspect, modify, or review
+      --files <list>      Comma-separated list of file paths for multi-file research
+  -d, --diff              Use git diff (HEAD / staged) as context for review task
+      --tier <tier>       Model routing tier: fast | code | reasoning | cheap (default: fast)
+  -m, --model <name>      Explicit model override (e.g. llama-3.3-70b-versatile, codestral-latest)
+      --provider <name>   Explicit provider name override
+      --max-tokens <int>  Maximum output tokens (default: 1024)
+      --json              Output response as structured JSON ({ provider, output })
+  -h, --help              Show this help menu and exit
+
+Examples:
+  node ./scripts/subagent.js --help
+  node ./scripts/subagent.js --task research --query "How does auth work?" --files "src/auth.ts,src/server.ts"
+  node ./scripts/subagent.js --task code --file "src/utils.ts" --prompt "Add UUID generator"
+  node ./scripts/subagent.js --task review --diff
+  node ./scripts/subagent.js --task compress --file "build.log"
+  node ./scripts/subagent.js --task ask --prompt "Explain the Karpathy ladder" --tier fast
+`);
 }
 
 // Environment Keys
@@ -115,9 +187,12 @@ async function callGemini(prompt, systemPrompt, model = 'gemini-2.5-flash', maxT
   if (!KEYS.gemini) throw new Error('GEMINI_API_KEY not set');
   // Use gemini-2.5-flash or gemini-1.5-flash
   const modelName = model.includes('/') ? model.split('/')[1] : (model || 'gemini-2.5-flash');
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${KEYS.gemini}`, {
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'x-goog-api-key': KEYS.gemini
+    },
     body: JSON.stringify({
       systemInstruction: systemPrompt ? { parts: [{ text: systemPrompt }] } : undefined,
       contents: [{ parts: [{ text: prompt }] }],
@@ -242,9 +317,8 @@ async function handleResearch(params) {
   const fileList = params.files.length > 0 ? params.files : (params.file ? [params.file] : []);
 
   for (const f of fileList) {
-    const resolved = path.resolve(process.cwd(), f);
-    if (fs.existsSync(resolved)) {
-      const content = fs.readFileSync(resolved, 'utf-8');
+    const content = readSafeFile(f);
+    if (content !== null) {
       fileContents += `\n--- FILE: ${f} ---\n${content}\n`;
     }
   }
@@ -272,8 +346,11 @@ async function handleCode(params) {
   const targetFile = params.file;
   
   let existingCode = '';
-  if (targetFile && fs.existsSync(path.resolve(process.cwd(), targetFile))) {
-    existingCode = fs.readFileSync(path.resolve(process.cwd(), targetFile), 'utf-8');
+  if (targetFile) {
+    const content = readSafeFile(targetFile);
+    if (content !== null) {
+      existingCode = content;
+    }
   }
 
   const systemPrompt = `You are an expert Surgical Code Generator Subagent.
@@ -309,9 +386,9 @@ async function handleReview(params) {
   }
 
   if (!diffContent.trim() && params.file) {
-    const resolved = path.resolve(process.cwd(), params.file);
-    if (fs.existsSync(resolved)) {
-      diffContent = `File: ${params.file}\n` + fs.readFileSync(resolved, 'utf-8');
+    const content = readSafeFile(params.file);
+    if (content !== null) {
+      diffContent = `File: ${params.file}\n` + content;
     }
   }
 
@@ -346,8 +423,13 @@ Format output as a compact markdown table or bullet points:
 // 4. LOG / TRACE COMPRESSION TASK
 async function handleCompress(params) {
   let logContent = '';
-  if (params.file && fs.existsSync(path.resolve(process.cwd(), params.file))) {
-    logContent = fs.readFileSync(path.resolve(process.cwd(), params.file), 'utf-8');
+  if (params.file) {
+    const content = readSafeFile(params.file);
+    if (content !== null) {
+      logContent = content;
+    } else {
+      logContent = params.prompt || params.query;
+    }
   } else {
     logContent = params.prompt || params.query;
   }
@@ -398,6 +480,11 @@ async function handleAsk(params) {
 // Main CLI dispatch
 async function main() {
   const params = parseArgs();
+
+  if (params.help) {
+    printHelp();
+    process.exit(0);
+  }
 
   try {
     switch (params.task.toLowerCase()) {
