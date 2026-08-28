@@ -40,7 +40,7 @@ jobs:
       - name: Install Dependencies & Build
         run: |
           cd docs
-          npm ci || npm install
+          npm ci
           npm run build
 
       - name: Upload Artifact
