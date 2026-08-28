@@ -45,7 +45,10 @@ param(
   [int]$MaxTokens = 1024,
 
   [Parameter(Mandatory=$false)]
-  [switch]$Json
+  [switch]$Json,
+
+  [Parameter(Mandatory=$false)]
+  [switch]$Help
 )
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -58,6 +61,11 @@ if (-not (Test-Path $subagentJs)) {
 if (-not (Test-Path $subagentJs)) {
   Write-Error "subagent.js not found in script directory or ~/.gemini/config/scripts/"
   exit 1
+}
+
+if ($Help) {
+  & node $subagentJs --help
+  exit 0
 }
 
 $argList = @("--task", $Task)
