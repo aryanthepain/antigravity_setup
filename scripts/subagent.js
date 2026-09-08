@@ -204,16 +204,25 @@ async function callGemini(prompt, systemPrompt, model = 'gemini-2.5-flash', maxT
   return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
 }
 
-async function callOpenRouter(prompt, systemPrompt, model = 'deepseek/deepseek-r1:free', maxTokens = 1024) {
+async function callOpenRouter(prompt, systemPrompt, model = 'openrouter/free', maxTokens = 1024) {
   if (!KEYS.openrouter) throw new Error('OPENROUTER_API_KEY not set');
+
+  const targetModel = model || 'openrouter/free';
+  const isFree = targetModel === 'openrouter/free' || targetModel.endsWith(':free');
+  if (!isFree) {
+    throw new Error(`[OpenRouter Safety Guard] Blocked paid model call '${targetModel}'. Only 'openrouter/free' or models ending with ':free' are permitted.`);
+  }
+
   const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${KEYS.openrouter}`,
-      'Content-Type': 'application/json'
+      'Content-Type': 'application/json',
+      'HTTP-Referer': 'https://github.com/aryanthepain/antigravity_setup',
+      'X-Title': 'Antigravity Free Subagent'
     },
     body: JSON.stringify({
-      model: model || 'openai/gpt-4o-mini',
+      model: targetModel,
       messages: [
         ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
         { role: 'user', content: prompt }
@@ -247,7 +256,7 @@ async function callOmniRoute(prompt, systemPrompt, model, maxTokens = 1024) {
 }
 
 // Router dispatcher with automatic fallback cascade
-async function dispatchToSubagent(prompt, systemPrompt, tier = 'fast', preferredModel = '', maxTokens = 1024) {
+async function dispatchToSubagent(prompt, systemPrompt, tier = 'fast', preferredModel = '', maxTokens = 1024, preferredProvider = '') {
   // Strategy: Try OmniRoute first if running, else cascade through available providers based on tier
   const tryCall = async (fn, name) => {
     try {
@@ -258,35 +267,53 @@ async function dispatchToSubagent(prompt, systemPrompt, tier = 'fast', preferred
     }
   };
 
-  // 1. Try OmniRoute local proxy
-  try {
-    const omniResult = await callOmniRoute(prompt, systemPrompt, preferredModel, maxTokens);
-    if (omniResult) return { provider: 'OmniRoute Gateway', output: omniResult };
-  } catch (e) {
-    // OmniRoute not running, fallback to direct APIs
+  // 1. Try OmniRoute local proxy if not targeting a specific provider
+  if (!preferredProvider || preferredProvider.toLowerCase() === 'omniroute') {
+    try {
+      const omniResult = await callOmniRoute(prompt, systemPrompt, preferredModel, maxTokens);
+      if (omniResult) return { provider: 'OmniRoute Gateway', output: omniResult };
+    } catch (e) {
+      // OmniRoute not running, fallback to direct APIs
+    }
   }
 
-  // 2. Multi-tier routing order
+  // 2. OpenRouter model: default to openrouter/free if not provided
+  const openRouterModel = preferredModel || 'openrouter/free';
+
+  // 3. Multi-tier routing order
   let attempts = [];
 
+  if (preferredProvider) {
+    const prov = preferredProvider.toLowerCase();
+    if (prov === 'openrouter' && KEYS.openrouter) {
+      attempts.push(() => callOpenRouter(prompt, systemPrompt, openRouterModel, maxTokens), 'OpenRouter (Free)');
+    } else if (prov === 'groq' && KEYS.groq) {
+      attempts.push(() => callGroq(prompt, systemPrompt, preferredModel || 'llama-3.3-70b-versatile', maxTokens), 'Groq LPU');
+    } else if (prov === 'mistral' && KEYS.mistral) {
+      attempts.push(() => callMistral(prompt, systemPrompt, preferredModel || 'codestral-latest', maxTokens), 'Mistral Codestral');
+    } else if (prov === 'gemini' && KEYS.gemini) {
+      attempts.push(() => callGemini(prompt, systemPrompt, preferredModel || 'gemini-2.5-flash', maxTokens), 'Google Gemini Flash');
+    }
+  }
+
   if (tier === 'code' || tier === 'precision_coding') {
-    // Code generation: Codestral -> Groq Llama 3.3 -> Gemini -> OpenRouter
+    // Code generation: Codestral -> Groq Llama 3.3 -> Gemini -> OpenRouter Free
     if (KEYS.mistral) attempts.push(() => callMistral(prompt, systemPrompt, 'codestral-latest', maxTokens), 'Mistral Codestral');
     if (KEYS.groq) attempts.push(() => callGroq(prompt, systemPrompt, 'llama-3.3-70b-versatile', maxTokens), 'Groq LPU (Llama 3.3 70B)');
     if (KEYS.gemini) attempts.push(() => callGemini(prompt, systemPrompt, 'gemini-2.5-flash', maxTokens), 'Google Gemini Flash');
-    if (KEYS.openrouter) attempts.push(() => callOpenRouter(prompt, systemPrompt, 'openai/gpt-4o-mini', maxTokens), 'OpenRouter GPT-4o-mini');
+    if (KEYS.openrouter) attempts.push(() => callOpenRouter(prompt, systemPrompt, openRouterModel, maxTokens), 'OpenRouter (Free Router)');
   } else if (tier === 'reasoning' || tier === 'review') {
-    // Review / Reasoning: OpenRouter (DeepSeek R1/GPT-4o) -> Gemini 2.5 Flash -> Mistral -> Groq
-    if (KEYS.openrouter) attempts.push(() => callOpenRouter(prompt, systemPrompt, 'openai/gpt-4o-mini', maxTokens), 'OpenRouter (GPT-4o-mini)');
+    // Review / Reasoning: OpenRouter Free -> Gemini 2.5 Flash -> Mistral -> Groq
+    if (KEYS.openrouter) attempts.push(() => callOpenRouter(prompt, systemPrompt, openRouterModel, maxTokens), 'OpenRouter (Free Router)');
     if (KEYS.gemini) attempts.push(() => callGemini(prompt, systemPrompt, 'gemini-2.5-flash', maxTokens), 'Google Gemini Flash');
     if (KEYS.mistral) attempts.push(() => callMistral(prompt, systemPrompt, 'codestral-latest', maxTokens), 'Mistral Codestral');
     if (KEYS.groq) attempts.push(() => callGroq(prompt, systemPrompt, 'llama-3.3-70b-versatile', maxTokens), 'Groq LPU');
   } else {
-    // Fast / Research / Cheap default: Groq (sub-second) -> Gemini Flash -> Mistral -> OpenRouter
+    // Fast / Research / Cheap default: Groq (sub-second) -> Gemini Flash -> Mistral -> OpenRouter Free
     if (KEYS.groq) attempts.push(() => callGroq(prompt, systemPrompt, 'llama-3.3-70b-versatile', maxTokens), 'Groq LPU (Llama 3.3 70B)');
     if (KEYS.gemini) attempts.push(() => callGemini(prompt, systemPrompt, 'gemini-2.5-flash', maxTokens), 'Google Gemini Flash');
     if (KEYS.mistral) attempts.push(() => callMistral(prompt, systemPrompt, 'codestral-latest', maxTokens), 'Mistral Codestral');
-    if (KEYS.openrouter) attempts.push(() => callOpenRouter(prompt, systemPrompt, 'openai/gpt-4o-mini', maxTokens), 'OpenRouter');
+    if (KEYS.openrouter) attempts.push(() => callOpenRouter(prompt, systemPrompt, openRouterModel, maxTokens), 'OpenRouter (Free Router)');
   }
 
   for (let i = 0; i < attempts.length; i += 2) {
@@ -330,7 +357,7 @@ Keep your response dense, structured, and under 250 tokens so the Chief Orchestr
 
   const userPrompt = `Research Question: ${query}\n\nFiles Context:\n${fileContents || '(No specific files attached, answer conceptually based on query)'}\n\nDeliverables:\n1. Key Findings & Invariants\n2. Relevant Signatures / Types\n3. Potential Edge Cases or Gotchas`;
 
-  const result = await dispatchToSubagent(userPrompt, systemPrompt, 'fast', params.model, params.maxTokens);
+  const result = await dispatchToSubagent(userPrompt, systemPrompt, 'fast', params.model, params.maxTokens, params.provider);
   
   if (params.json) {
     console.log(JSON.stringify(result, null, 2));
@@ -360,7 +387,7 @@ If modifying an existing file, specify the exact lines or function to replace.`;
 
   const userPrompt = `Target File: ${targetFile || 'Net new code'}\nInstructions: ${instructions}\n\nExisting Code:\n${existingCode || '(None)'}`;
 
-  const result = await dispatchToSubagent(userPrompt, systemPrompt, 'code', params.model, params.maxTokens);
+  const result = await dispatchToSubagent(userPrompt, systemPrompt, 'code', params.model, params.maxTokens, params.provider);
 
   if (params.json) {
     console.log(JSON.stringify(result, null, 2));
@@ -410,7 +437,7 @@ Format output as a compact markdown table or bullet points:
 
   const userPrompt = `Code / Diff for Review:\n${diffContent}`;
 
-  const result = await dispatchToSubagent(userPrompt, systemPrompt, 'review', params.model, params.maxTokens);
+  const result = await dispatchToSubagent(userPrompt, systemPrompt, 'review', params.model, params.maxTokens, params.provider);
 
   if (params.json) {
     console.log(JSON.stringify(result, null, 2));
@@ -449,7 +476,7 @@ Keep output under 100 tokens.`;
 
   const userPrompt = `Raw Logs:\n${logContent}`;
 
-  const result = await dispatchToSubagent(userPrompt, systemPrompt, 'fast', params.model, 300);
+  const result = await dispatchToSubagent(userPrompt, systemPrompt, 'fast', params.model, 300, params.provider);
 
   if (params.json) {
     console.log(JSON.stringify(result, null, 2));
@@ -467,7 +494,7 @@ async function handleAsk(params) {
     process.exit(1);
   }
 
-  const result = await dispatchToSubagent(prompt, 'You are an ultra-fast worker subagent. Give direct, accurate, concise answers.', params.tier, params.model, params.maxTokens);
+  const result = await dispatchToSubagent(prompt, 'You are an ultra-fast worker subagent. Give direct, accurate, concise answers.', params.tier, params.model, params.maxTokens, params.provider);
 
   if (params.json) {
     console.log(JSON.stringify(result, null, 2));
