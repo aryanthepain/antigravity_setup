@@ -56,7 +56,7 @@ Every provider below offers generous, permanent free tiers for zero-budget engin
 | **Google AI Studio** | 1M Context, Architect & Research | 1,500 requests/day | [aistudio.google.com](https://aistudio.google.com/) |
 | **Groq Cloud** | Sub-second TDD & Fast Code Loops | 1,000 requests/day | [console.groq.com](https://console.groq.com/) |
 | **Mistral AI** | Codestral Precision Code Generation | Free La Plateforme Tier | [console.mistral.ai](https://console.mistral.ai/) |
-| **OpenRouter** | DeepSeek R1 & GPT-4o-mini Free Pool | Free community tier | [openrouter.ai](https://openrouter.ai/) |
+| **OpenRouter** | Zero-Cost Free Router & Community Models | Free community tier (`openrouter/free`, `:free` models) | [openrouter.ai](https://openrouter.ai/) |
 | **GitHub Personal Token** | Git Operations, Worktrees & PRs | Standard GitHub Rate Limits | [github.com/settings/tokens](https://github.com/settings/tokens) |
 | **Notion API** | Task Board & Card Synchronization | Free integration tier | [notion.so/my-integrations](https://www.notion.so/my-integrations) |
 
@@ -176,8 +176,8 @@ providers:
     type: "openrouter"
     api_key: "${OPENROUTER_API_KEY}"
     models:
-      - "deepseek/deepseek-r1:free"
-      - "openai/gpt-4o-mini"
+      - "openrouter/free"
+      - "nvidia/nemotron-3-super-120b-a12b:free"
     priority: 4
 
 fallback_chain:
