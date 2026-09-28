@@ -25,10 +25,10 @@ Port the 8 required portable Antigravity skills into `$CODEX_HOME/skills/`:
 All skills must be self-contained: no `~/.gemini` paths, no Antigravity CLI commands, clean frontmatter, and standard triggers/non-triggers.
 
 ## Acceptance criteria
-- [ ] Create 8 directories under `$CODEX_HOME/skills/`.
-- [ ] Author adapted, self-contained `SKILL.md` in each directory.
-- [ ] Verify zero references to `~/.gemini`, `agy`, or Antigravity-internal hooks.
-- [ ] Include clear trigger formulas and non-triggers.
+- [x] Create 8 directories under `$CODEX_HOME/skills/`.
+- [x] Author adapted, self-contained `SKILL.md` in each directory.
+- [x] Verify zero references to `~/.gemini`, `agy`, or Antigravity-internal hooks.
+- [x] Include clear trigger formulas and non-triggers.
 
 ## Blocked by
 - Blocked by `issues/001-phase-0-preflight-and-backup.md`

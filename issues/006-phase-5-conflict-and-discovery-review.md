@@ -15,10 +15,10 @@ parent_branch: main
 Inspect all installed skills in `$CODEX_HOME/skills/` (both GSD and the 8 non-GSD ported skills). Validate YAML frontmatter, ensure valid trigger descriptions, verify no namespace collisions, and verify non-triggers ensure system skills (`documents`, `spreadsheets`, `presentations`, etc.) are never captured.
 
 ## Acceptance criteria
-- [ ] Scan all `SKILL.md` files under `$CODEX_HOME/skills/` for frontmatter validity.
-- [ ] Verify each skill has distinct trigger phrases and explicit negative triggers.
-- [ ] Ensure system skills continue functioning without interception.
-- [ ] Document audit output in `logs/codex-parity-install.log`.
+- [x] Scan all `SKILL.md` files under `$CODEX_HOME/skills/` for frontmatter validity.
+- [x] Verify each skill has distinct trigger phrases and explicit negative triggers.
+- [x] Ensure system skills continue functioning without interception.
+- [x] Document audit output in `logs/codex-parity-install.log`.
 
 ## Blocked by
 - Blocked by `issues/002-phase-1-install-gsd-codex.md`

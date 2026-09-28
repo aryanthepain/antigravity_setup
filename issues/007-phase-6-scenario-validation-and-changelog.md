@@ -28,10 +28,10 @@ Validate the 11 scenarios specified in PRD §6:
 Generate a comprehensive CHANGELOG / implementation summary documenting source skill, Codex adaptation, version, validation date, and rollback procedure. Sound the completion audio alarm (`scripts/agent-alarm.ps1`).
 
 ## Acceptance criteria
-- [ ] Run dry-run / scenario prompt validation against skill triggers.
-- [ ] Write `CHANGELOG-codex-parity.md` documenting all installed skills and rollback steps.
-- [ ] Sound spoken completion alert using `pwsh -File .\scripts\agent-alarm.ps1 -Type Success -Message "..."`.
-- [ ] Commit all issue files and implementation artifacts to `feat/codex-skill-parity`.
+- [x] Run dry-run / scenario prompt validation against skill triggers.
+- [x] Write `CHANGELOG-codex-parity.md` documenting all installed skills and rollback steps.
+- [x] Sound spoken completion alert using `pwsh -File .\scripts\agent-alarm.ps1 -Type Success -Message "..."`.
+- [x] Commit all issue files and implementation artifacts to `feat/codex-skill-parity`.
 
 ## Blocked by
 - Blocked by `issues/003-phase-2-global-delivery-policy.md`
