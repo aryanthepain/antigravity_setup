@@ -15,11 +15,11 @@ parent_branch: main
 Install the official/maintained Codex-compatible GSD distribution into `$CODEX_HOME/skills` (`C:\Users\Aryan Gupta\.codex\skills`), choosing the full profile (planning, execution, verification, review, branch, milestone, workstream, ship). Verify that all referenced workflow files exist under the installed Codex location without corrupting existing plugins or skills.
 
 ## Acceptance criteria
-- [ ] Inspect package/upstream options (`@opengsd/get-shit-done-redux` or verified repo).
-- [ ] Install the full GSD distribution into `C:\Users\Aryan Gupta\.codex\skills`.
-- [ ] Validate presence of GSD skills (`gsd-*/SKILL.md`) in Codex skills directory.
-- [ ] Confirm no mixing of obsolete paths; verify that frontmatter and commands are Codex-compatible.
-- [ ] Record exact version and installer invocation in `logs/codex-parity-install.log`.
+- [x] Inspect package/upstream options (`@opengsd/get-shit-done-redux` or verified repo).
+- [x] Install the full GSD distribution into `C:\Users\Aryan Gupta\.codex\skills`.
+- [x] Validate presence of GSD skills (`gsd-*/SKILL.md`) in Codex skills directory.
+- [x] Confirm no mixing of obsolete paths; verify that frontmatter and commands are Codex-compatible.
+- [x] Record exact version and installer invocation in `logs/codex-parity-install.log`.
 
 ## Blocked by
 - Blocked by `issues/001-phase-0-preflight-and-backup.md`

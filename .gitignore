@@ -12,6 +12,8 @@ data/*.db
 
 # Logs & Temp
 *.log
+logs/
+backups/
 .DS_Store
 Thumbs.db
 

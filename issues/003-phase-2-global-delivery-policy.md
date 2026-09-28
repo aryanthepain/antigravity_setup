@@ -23,10 +23,10 @@ Configure Codex global instructions with the mandatory delivery policies:
 8. Superpowers (inspect before acting, compose relevant skills, verification evidence).
 
 ## Acceptance criteria
-- [ ] Determine Codex global instruction mechanism (e.g. `~/.codex/instructions.md`, global `AGENTS.md`, or `config.toml` user instructions).
-- [ ] Install global policy verbatim in meaning with explicit exception guards.
-- [ ] Integrate optional audio alert referencing `scripts/agent-alarm.ps1`.
-- [ ] Map delegation to Codex-native multi-agent paradigms.
+- [x] Determine Codex global instruction mechanism (e.g. `~/.codex/instructions.md`, global `AGENTS.md`, or `config.toml` user instructions).
+- [x] Install global policy verbatim in meaning with explicit exception guards.
+- [x] Integrate optional audio alert referencing `scripts/agent-alarm.ps1`.
+- [x] Map delegation to Codex-native multi-agent paradigms.
 
 ## Blocked by
 - Blocked by `issues/001-phase-0-preflight-and-backup.md`
