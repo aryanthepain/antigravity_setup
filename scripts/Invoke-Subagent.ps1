@@ -45,6 +45,9 @@ param(
   [int]$MaxTokens = 1024,
 
   [Parameter(Mandatory=$false)]
+  [string]$Provider,
+
+  [Parameter(Mandatory=$false)]
   [switch]$Json,
 
   [Parameter(Mandatory=$false)]
@@ -78,6 +81,7 @@ if ($Diff) { $argList += @("--diff") }
 if ($Tier) { $argList += @("--tier", $Tier) }
 if ($Model) { $argList += @("--model", $Model) }
 if ($MaxTokens) { $argList += @("--max-tokens", $MaxTokens) }
+if ($Provider) { $argList += @("--provider", $Provider) }
 if ($Json) { $argList += @("--json") }
 
 & node $subagentJs @argList
