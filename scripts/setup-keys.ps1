@@ -25,13 +25,14 @@ $keys = @(
     @{ Name = "ANTHROPIC_API_KEY"; Tier = "Anthropic (Claude 3.7 Sonnet)"; Source = "https://console.anthropic.com/"; Required = $false },
     @{ Name = "OPENAI_API_KEY"; Tier = "OpenAI (o3-mini / GPT-4o)"; Source = "https://platform.openai.com/"; Required = $false },
     @{ Name = "OPENROUTER_API_KEY"; Tier = "OpenRouter Gateway"; Source = "https://openrouter.ai/"; Required = $false },
+    @{ Name = "XAI_API_KEY"; Tier = "xAI Grok (Trial credits / Free fallback)"; Source = "https://console.x.ai/"; Required = $false },
     @{ Name = "LOVABLE_API_KEY"; Tier = "Lovable MCP (UI Scaffolding)"; Source = "https://lovable.dev/"; Required = $false },
     @{ Name = "STRIX_API_KEY"; Tier = "Strix AI (Penetration Testing)"; Source = "https://usestrix.com/"; Required = $false }
 )
 
 # Allowed environment variables whitelist (prevents arbitrary variable tampering)
 $allowedKeyNames = @(
-    $keys.Name + @("NOTION_API_KEY", "GITHUB_PERSONAL_ACCESS_TOKEN", "ANTIMETAL_API_KEY")
+    $keys.Name + @("NOTION_API_KEY", "GITHUB_PERSONAL_ACCESS_TOKEN", "ANTIMETAL_API_KEY", "GROK_API_KEY")
 )
 
 if ($SetKey) {
@@ -56,7 +57,7 @@ if ($SetKey) {
     [System.Environment]::SetEnvironmentVariable($SetKey, $Value, "User")
     [System.Environment]::SetEnvironmentVariable($SetKey, $Value, "Process")
     
-    # Mirror Notion and GitHub key aliases for full compatibility
+    # Mirror Notion, GitHub, and Grok key aliases for full compatibility
     if ($SetKey -eq "NOTION_API_TOKEN") {
         [System.Environment]::SetEnvironmentVariable("NOTION_API_KEY", $Value, "User")
         [System.Environment]::SetEnvironmentVariable("NOTION_API_KEY", $Value, "Process")
@@ -68,6 +69,14 @@ if ($SetKey) {
     if ($SetKey -eq "GITHUB_TOKEN") {
         [System.Environment]::SetEnvironmentVariable("GITHUB_PERSONAL_ACCESS_TOKEN", $Value, "User")
         [System.Environment]::SetEnvironmentVariable("GITHUB_PERSONAL_ACCESS_TOKEN", $Value, "Process")
+    }
+    if ($SetKey -eq "XAI_API_KEY") {
+        [System.Environment]::SetEnvironmentVariable("GROK_API_KEY", $Value, "User")
+        [System.Environment]::SetEnvironmentVariable("GROK_API_KEY", $Value, "Process")
+    }
+    if ($SetKey -eq "GROK_API_KEY") {
+        [System.Environment]::SetEnvironmentVariable("XAI_API_KEY", $Value, "User")
+        [System.Environment]::SetEnvironmentVariable("XAI_API_KEY", $Value, "Process")
     }
     
     Write-Host "`nSuccessfully set user environment variable '$SetKey'." -ForegroundColor Green
@@ -85,6 +94,10 @@ foreach ($k in $keys) {
     $name = $k.Name
     $val = $userVars[$name]
     if (-not $val) { $val = $procVars[$name] }
+    if (-not $val -and $name -eq "XAI_API_KEY") {
+        $val = $userVars["GROK_API_KEY"]
+        if (-not $val) { $val = $procVars["GROK_API_KEY"] }
+    }
 
     if ($val) {
         $previewLen = [Math]::Min(4, $val.Length)

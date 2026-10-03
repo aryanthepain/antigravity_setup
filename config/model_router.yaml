@@ -201,7 +201,13 @@ providers:
     base_url: "https://api.groq.com/openai/v1"
     api_key_env: "GROQ_API_KEY"
     free_daily_limit: 1000
-    notes: "Ultra-fast LPU inference (Llama 3.3 70B, Llama 3.1 8B)"
+    notes: "Ultra-fast LPU inference (openai/gpt-oss-120b, qwen/qwen3.8-27b, llama-3.1-8b-instant)"
+
+  xai:
+    base_url: "https://api.x.ai/v1"
+    api_key_env: "XAI_API_KEY"
+    free_daily_limit: "trial_credits_free_fallback"
+    notes: "Frontier Grok reasoning (grok-2-latest). Strictly used up to free trial credits, with automatic zero-cost fallback to Groq LPU and OpenRouter Free"
 
   mistral:
     base_url: "https://api.mistral.ai/v1"
