@@ -109,7 +109,21 @@ if (Test-Path "docs/app.js") {
     }
 }
 
-# 4. Agent Alarm Resolver
+# 4. GSD Subagents Verification Gate
+$gsdVerifyScript = Join-Path $PSScriptRoot "verify-gsd-agents.ps1"
+if (Test-Path $gsdVerifyScript) {
+    Write-Host ""
+    Write-Host "--- [GSD Subagents Gate] ---" -ForegroundColor Yellow
+    pwsh -File $gsdVerifyScript
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "❌ GSD Subagents verification failed!" -ForegroundColor Red
+        $failed = $true
+    } else {
+        Write-Host "✅ GSD Subagents verification passed." -ForegroundColor Green
+    }
+}
+
+# 5. Agent Alarm Resolver
 $alarmScript = Join-Path $PSScriptRoot "agent-alarm.ps1"
 if (-not (Test-Path $alarmScript)) {
     $alarmScript = Join-Path $env:USERPROFILE ".gemini\config\skills\agent-alarm\scripts\agent-alarm.ps1"

@@ -22,3 +22,6 @@ dist/
 docs/dist/
 .vite/
 docs/.vite/
+
+# Backups
+backups/
