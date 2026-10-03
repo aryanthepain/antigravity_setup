@@ -111,7 +111,7 @@ Options:
       --files <list>      Comma-separated list of file paths for multi-file research
   -d, --diff              Use git diff (HEAD / staged) as context for review task
       --tier <tier>       Model routing tier: fast | code | reasoning | cheap (default: fast)
-  -m, --model <name>      Explicit model override (e.g. llama-3.3-70b-versatile, codestral-latest)
+  -m, --model <name>      Explicit model override (e.g. openai/gpt-oss-120b, codestral-latest)
       --provider <name>   Explicit provider name override
       --max-tokens <int>  Maximum output tokens (default: 1024)
       --json              Output response as structured JSON ({ provider, output })
@@ -133,11 +133,12 @@ const KEYS = {
   groq: process.env.GROQ_API_KEY,
   mistral: process.env.MISTRAL_API_KEY,
   openrouter: process.env.OPENROUTER_API_KEY,
-  deepseek: process.env.DEEPSEEK_API_KEY
+  deepseek: process.env.DEEPSEEK_API_KEY,
+  xai: process.env.XAI_API_KEY || process.env.GROK_API_KEY
 };
 
 // Model provider implementations
-async function callGroq(prompt, systemPrompt, model = 'llama-3.3-70b-versatile', maxTokens = 1024) {
+async function callGroq(prompt, systemPrompt, model = 'openai/gpt-oss-120b', maxTokens = 1024) {
   if (!KEYS.groq) throw new Error('GROQ_API_KEY not set');
   const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
     method: 'POST',
@@ -146,7 +147,7 @@ async function callGroq(prompt, systemPrompt, model = 'llama-3.3-70b-versatile',
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      model: model || 'llama-3.3-70b-versatile',
+      model: model || 'openai/gpt-oss-120b',
       messages: [
         ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
         { role: 'user', content: prompt }
@@ -155,6 +156,9 @@ async function callGroq(prompt, systemPrompt, model = 'llama-3.3-70b-versatile',
       temperature: 0.2
     })
   });
+  if (res.status === 429) {
+    throw new Error('Groq free-tier rate limit reached (HTTP 429). Cascading to next free provider.');
+  }
   const data = await res.json();
   if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
   return data.choices?.[0]?.message?.content?.trim() || '';
@@ -178,8 +182,20 @@ async function callMistral(prompt, systemPrompt, model = 'codestral-latest', max
       temperature: 0.2
     })
   });
+  if (res.status === 429) {
+    throw new Error('Mistral free-tier rate limit reached (HTTP 429). Cascading to next free provider.');
+  }
+  if (res.status === 402 || res.status === 403) {
+    throw new Error('Mistral free usage limit reached / payment required (HTTP ' + res.status + '). Blocked to guarantee zero charges.');
+  }
   const data = await res.json();
-  if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+  if (data.error) {
+    const errMsg = (data.error.message || JSON.stringify(data.error)).toLowerCase();
+    if (errMsg.includes('credit') || errMsg.includes('balance') || errMsg.includes('quota') || errMsg.includes('payment')) {
+      throw new Error('Mistral free quota exhausted: ' + (data.error.message || 'Payment required') + '. Cascading to zero-cost fallback.');
+    }
+    throw new Error(data.error.message || JSON.stringify(data.error));
+  }
   return data.choices?.[0]?.message?.content?.trim() || '';
 }
 
@@ -199,9 +215,47 @@ async function callGemini(prompt, systemPrompt, model = 'gemini-2.5-flash', maxT
       generationConfig: { maxOutputTokens: maxTokens, temperature: 0.2 }
     })
   });
+  if (res.status === 429) {
+    throw new Error('Gemini free-tier rate limit reached (HTTP 429). Cascading to next free provider.');
+  }
   const data = await res.json();
   if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
   return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+}
+
+async function callXAI(prompt, systemPrompt, model = 'grok-2-latest', maxTokens = 1024) {
+  if (!KEYS.xai) throw new Error('XAI_API_KEY not set');
+  const res = await fetch('https://api.x.ai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${KEYS.xai}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      model: model || 'grok-2-latest',
+      messages: [
+        ...(systemPrompt ? [{ role: 'system', content: systemPrompt }] : []),
+        { role: 'user', content: prompt }
+      ],
+      max_tokens: maxTokens,
+      temperature: 0.2
+    })
+  });
+  if (res.status === 429) {
+    throw new Error('xAI Grok rate limit reached (HTTP 429). Cascading to next free provider.');
+  }
+  if (res.status === 402 || res.status === 403) {
+    throw new Error('xAI Grok trial credits exhausted or forbidden (HTTP ' + res.status + '). Blocked to guarantee zero charges.');
+  }
+  const data = await res.json();
+  if (data.error) {
+    const errMsg = (data.error.message || JSON.stringify(data.error)).toLowerCase();
+    if (errMsg.includes('credit') || errMsg.includes('balance') || errMsg.includes('quota') || errMsg.includes('payment')) {
+      throw new Error('xAI Grok credits exhausted: ' + (data.error.message || 'Payment required') + '. Cascading to zero-cost fallback.');
+    }
+    throw new Error(data.error.message || JSON.stringify(data.error));
+  }
+  return data.choices?.[0]?.message?.content?.trim() || '';
 }
 
 async function callOpenRouter(prompt, systemPrompt, model = 'openrouter/free', maxTokens = 1024) {
@@ -210,7 +264,7 @@ async function callOpenRouter(prompt, systemPrompt, model = 'openrouter/free', m
   const targetModel = model || 'openrouter/free';
   const isFree = targetModel === 'openrouter/free' || targetModel.endsWith(':free');
   if (!isFree) {
-    throw new Error(`[OpenRouter Safety Guard] Blocked paid model call '${targetModel}'. Only 'openrouter/free' or models ending with ':free' are permitted.`);
+    throw new Error(`[OpenRouter Safety Guard] Blocked paid model call '${targetModel}'. Only 'openrouter/free' or models ending with ':free' are permitted. Zero paid tokens allowed.`);
   }
 
   const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -285,32 +339,55 @@ async function dispatchToSubagent(prompt, systemPrompt, tier = 'fast', preferred
 
   if (preferredProvider) {
     const prov = preferredProvider.toLowerCase();
-    if (prov === 'openrouter' && KEYS.openrouter) {
-      attempts.push(() => callOpenRouter(prompt, systemPrompt, openRouterModel, maxTokens), 'OpenRouter (Free)');
-    } else if (prov === 'groq' && KEYS.groq) {
-      attempts.push(() => callGroq(prompt, systemPrompt, preferredModel || 'llama-3.3-70b-versatile', maxTokens), 'Groq LPU');
-    } else if (prov === 'mistral' && KEYS.mistral) {
-      attempts.push(() => callMistral(prompt, systemPrompt, preferredModel || 'codestral-latest', maxTokens), 'Mistral Codestral');
-    } else if (prov === 'gemini' && KEYS.gemini) {
-      attempts.push(() => callGemini(prompt, systemPrompt, preferredModel || 'gemini-2.5-flash', maxTokens), 'Google Gemini Flash');
+    if (prov === 'openrouter') {
+      if (KEYS.openrouter) attempts.push(() => callOpenRouter(prompt, systemPrompt, openRouterModel, maxTokens), 'OpenRouter');
+      if (KEYS.groq) attempts.push(() => callGroq(prompt, systemPrompt, 'openai/gpt-oss-120b', maxTokens), 'Groq LPU (OpenRouter free fallback)');
+    } else if (prov === 'groq') {
+      if (KEYS.groq) attempts.push(() => callGroq(prompt, systemPrompt, preferredModel || 'openai/gpt-oss-120b', maxTokens), 'Groq LPU');
+      if (KEYS.mistral) attempts.push(() => callMistral(prompt, systemPrompt, 'codestral-latest', maxTokens), 'Mistral Codestral (Groq free fallback)');
+      if (KEYS.gemini) attempts.push(() => callGemini(prompt, systemPrompt, 'gemini-2.5-flash', maxTokens), 'Google Gemini Flash (Groq free fallback)');
+    } else if (prov === 'grok' || prov === 'xai') {
+      if (KEYS.xai) {
+        attempts.push(() => callXAI(prompt, systemPrompt, preferredModel || 'grok-2-latest', maxTokens), 'xAI Grok');
+      }
+      if (KEYS.groq) {
+        attempts.push(() => callGroq(prompt, systemPrompt, 'openai/gpt-oss-120b', maxTokens), 'Groq LPU (Grok free fallback)');
+      }
+      if (KEYS.gemini) {
+        attempts.push(() => callGemini(prompt, systemPrompt, 'gemini-2.5-flash', maxTokens), 'Google Gemini Flash (Grok free fallback)');
+      }
+      if (KEYS.mistral) {
+        attempts.push(() => callMistral(prompt, systemPrompt, 'codestral-latest', maxTokens), 'Mistral Codestral (Grok free fallback)');
+      }
+      if (KEYS.openrouter) {
+        attempts.push(() => callOpenRouter(prompt, systemPrompt, 'openrouter/free', maxTokens), 'OpenRouter (Free Router)');
+      }
+    } else if (prov === 'mistral') {
+      if (KEYS.mistral) attempts.push(() => callMistral(prompt, systemPrompt, preferredModel || 'codestral-latest', maxTokens), 'Mistral Codestral');
+      if (KEYS.groq) attempts.push(() => callGroq(prompt, systemPrompt, 'openai/gpt-oss-120b', maxTokens), 'Groq LPU (Mistral free fallback)');
+      if (KEYS.gemini) attempts.push(() => callGemini(prompt, systemPrompt, 'gemini-2.5-flash', maxTokens), 'Google Gemini Flash (Mistral free fallback)');
+    } else if (prov === 'gemini') {
+      if (KEYS.gemini) attempts.push(() => callGemini(prompt, systemPrompt, preferredModel || 'gemini-2.5-flash', maxTokens), 'Google Gemini Flash');
+      if (KEYS.groq) attempts.push(() => callGroq(prompt, systemPrompt, 'openai/gpt-oss-120b', maxTokens), 'Groq LPU (Gemini free fallback)');
     }
   }
 
   if (tier === 'code' || tier === 'precision_coding') {
-    // Code generation: Codestral -> Groq Llama 3.3 -> Gemini -> OpenRouter Free
+    // Code generation: Codestral -> Groq -> Gemini -> OpenRouter Free
     if (KEYS.mistral) attempts.push(() => callMistral(prompt, systemPrompt, 'codestral-latest', maxTokens), 'Mistral Codestral');
-    if (KEYS.groq) attempts.push(() => callGroq(prompt, systemPrompt, 'llama-3.3-70b-versatile', maxTokens), 'Groq LPU (Llama 3.3 70B)');
+    if (KEYS.groq) attempts.push(() => callGroq(prompt, systemPrompt, 'openai/gpt-oss-120b', maxTokens), 'Groq LPU (GPT-OSS 120B)');
     if (KEYS.gemini) attempts.push(() => callGemini(prompt, systemPrompt, 'gemini-2.5-flash', maxTokens), 'Google Gemini Flash');
     if (KEYS.openrouter) attempts.push(() => callOpenRouter(prompt, systemPrompt, openRouterModel, maxTokens), 'OpenRouter (Free Router)');
   } else if (tier === 'reasoning' || tier === 'review') {
-    // Review / Reasoning: OpenRouter Free -> Gemini 2.5 Flash -> Mistral -> Groq
+    // Review / Reasoning: xAI Grok (if available) -> OpenRouter Free -> Gemini 2.5 Flash -> Mistral -> Groq
+    if (KEYS.xai) attempts.push(() => callXAI(prompt, systemPrompt, preferredModel || 'grok-2-latest', maxTokens), 'xAI Grok');
     if (KEYS.openrouter) attempts.push(() => callOpenRouter(prompt, systemPrompt, openRouterModel, maxTokens), 'OpenRouter (Free Router)');
     if (KEYS.gemini) attempts.push(() => callGemini(prompt, systemPrompt, 'gemini-2.5-flash', maxTokens), 'Google Gemini Flash');
     if (KEYS.mistral) attempts.push(() => callMistral(prompt, systemPrompt, 'codestral-latest', maxTokens), 'Mistral Codestral');
-    if (KEYS.groq) attempts.push(() => callGroq(prompt, systemPrompt, 'llama-3.3-70b-versatile', maxTokens), 'Groq LPU');
+    if (KEYS.groq) attempts.push(() => callGroq(prompt, systemPrompt, 'openai/gpt-oss-120b', maxTokens), 'Groq LPU (GPT-OSS 120B)');
   } else {
     // Fast / Research / Cheap default: Groq (sub-second) -> Gemini Flash -> Mistral -> OpenRouter Free
-    if (KEYS.groq) attempts.push(() => callGroq(prompt, systemPrompt, 'llama-3.3-70b-versatile', maxTokens), 'Groq LPU (Llama 3.3 70B)');
+    if (KEYS.groq) attempts.push(() => callGroq(prompt, systemPrompt, 'openai/gpt-oss-120b', maxTokens), 'Groq LPU (GPT-OSS 120B)');
     if (KEYS.gemini) attempts.push(() => callGemini(prompt, systemPrompt, 'gemini-2.5-flash', maxTokens), 'Google Gemini Flash');
     if (KEYS.mistral) attempts.push(() => callMistral(prompt, systemPrompt, 'codestral-latest', maxTokens), 'Mistral Codestral');
     if (KEYS.openrouter) attempts.push(() => callOpenRouter(prompt, systemPrompt, openRouterModel, maxTokens), 'OpenRouter (Free Router)');
@@ -325,7 +402,7 @@ async function dispatchToSubagent(prompt, systemPrompt, tier = 'fast', preferred
     }
   }
 
-  throw new Error('All model providers failed or keys not configured. Please check GEMINI_API_KEY, GROQ_API_KEY, MISTRAL_API_KEY, or OPENROUTER_API_KEY.');
+  throw new Error('All model providers failed or keys not configured. Please check GEMINI_API_KEY, GROQ_API_KEY, MISTRAL_API_KEY, OPENROUTER_API_KEY, or XAI_API_KEY.');
 }
 
 // -------------------------------------------------------------
