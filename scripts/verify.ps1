@@ -123,7 +123,21 @@ if (Test-Path $gsdVerifyScript) {
     }
 }
 
-# 5. Agent Alarm Resolver
+# 5. Zero-Cost Anti-Paid Model Security Gate
+$zeroCostGate = Join-Path $PSScriptRoot "test-zero-cost-guards.ps1"
+if (Test-Path $zeroCostGate) {
+    Write-Host ""
+    Write-Host "--- [Zero-Cost Anti-Paid Model Security Gate] ---" -ForegroundColor Yellow
+    pwsh -File $zeroCostGate
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "❌ Zero-Cost Security Gate failed!" -ForegroundColor Red
+        $failed = $true
+    } else {
+        Write-Host "✅ Zero-Cost Security Gate passed." -ForegroundColor Green
+    }
+}
+
+# 6. Agent Alarm Resolver
 $alarmScript = Join-Path $PSScriptRoot "agent-alarm.ps1"
 if (-not (Test-Path $alarmScript)) {
     $alarmScript = Join-Path $env:USERPROFILE ".gemini\config\skills\agent-alarm\scripts\agent-alarm.ps1"
