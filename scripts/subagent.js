@@ -157,8 +157,9 @@ const KEYS = {
   groq: process.env.GROQ_API_KEY,
   mistral: process.env.MISTRAL_API_KEY,
   openrouter: process.env.OPENROUTER_API_KEY,
-  deepseek: process.env.DEEPSEEK_API_KEY,
-  xai: process.env.XAI_API_KEY || process.env.GROK_API_KEY
+  // [PAID TIERS - REMOVED FROM ROTATION. Uncomment when keys are available]
+  // deepseek: process.env.DEEPSEEK_API_KEY,
+  // xai: process.env.XAI_API_KEY || process.env.GROK_API_KEY
 };
 
 // -------------------------------------------------------------
@@ -462,6 +463,8 @@ async function callGemini(prompt, systemPrompt, model = 'gemini-3.8-flash', maxT
   return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
 }
 
+/*
+// [PAID TIER - REMOVED FROM ACTIVE ROTATION. Uncomment when keys are available]
 async function callXAI(prompt, systemPrompt, model = 'grok-2-latest', maxTokens = 1024) {
   if (!KEYS.xai) throw new Error('XAI_API_KEY not set');
   const res = await fetch('https://api.x.ai/v1/chat/completions', {
@@ -496,6 +499,7 @@ async function callXAI(prompt, systemPrompt, model = 'grok-2-latest', maxTokens 
   }
   return data.choices?.[0]?.message?.content?.trim() || '';
 }
+*/
 
 async function isModelVerifiedFree(modelId) {
   if (!modelId || typeof modelId !== 'string') return false;
@@ -628,6 +632,8 @@ async function dispatchToSubagent(prompt, systemPrompt, tier = 'fast', preferred
   if (KEYS.mistral) candidateList.push({ id: 'codestral-latest', provider: 'Mistral', desc: 'Surgical code intelligence & patch synthesis' });
   if (KEYS.gemini) candidateList.push({ id: 'gemini-3.8-flash', provider: 'Google Gemini', desc: '1M-context multimodal reasoning' });
   if (KEYS.groq) candidateList.push({ id: 'openai/gpt-oss-120b', provider: 'Groq LPU', desc: 'Ultra-fast 120B model (800 tokens/s)' });
+  // [PAID TIER - REMOVED FROM ROTATION]
+  // if (KEYS.xai) candidateList.push({ id: 'grok-2-latest', provider: 'xAI', desc: 'xAI Grok 2 frontier model' });
 
   // Add top OpenRouter free models
   sortedFreeModels.slice(0, 5).forEach(m => {
@@ -660,6 +666,9 @@ async function dispatchToSubagent(prompt, systemPrompt, tier = 'fast', preferred
         attempts.push(() => callGemini(prompt, systemPrompt, 'gemini-3.8-flash', maxTokens), 'Google Gemini Flash', 'gemini-3.8-flash');
       } else if (candidate.id === 'openai/gpt-oss-120b' && KEYS.groq) {
         attempts.push(() => callGroq(prompt, systemPrompt, 'openai/gpt-oss-120b', maxTokens), 'Groq LPU (GPT-OSS 120B)', 'openai/gpt-oss-120b');
+      // [PAID TIER - REMOVED FROM ROTATION]
+      // } else if (candidate.id === 'grok-2-latest' && KEYS.xai) {
+      //   attempts.push(() => callXAI(prompt, systemPrompt, 'grok-2-latest', maxTokens), 'xAI Grok', 'grok-2-latest');
       }
     }
   }
@@ -687,6 +696,10 @@ async function dispatchToSubagent(prompt, systemPrompt, tier = 'fast', preferred
     } else if (prov === 'gemini') {
       if (KEYS.gemini) attempts.push(() => callGemini(prompt, systemPrompt, preferredModel || 'gemini-3.8-flash', maxTokens), 'Google Gemini Flash', preferredModel || 'gemini-3.8-flash');
       if (KEYS.groq) attempts.push(() => callGroq(prompt, systemPrompt, 'openai/gpt-oss-120b', maxTokens), 'Groq LPU (Gemini fallback)', 'openai/gpt-oss-120b');
+    // [PAID TIER - REMOVED FROM ROTATION]
+    // } else if (prov === 'xai' || prov === 'grok') {
+    //   if (KEYS.xai) attempts.push(() => callXAI(prompt, systemPrompt, preferredModel || 'grok-2-latest', maxTokens), 'xAI Grok', preferredModel || 'grok-2-latest');
+    //   if (KEYS.groq) attempts.push(() => callGroq(prompt, systemPrompt, 'openai/gpt-oss-120b', maxTokens), 'Groq LPU (xAI fallback)', 'openai/gpt-oss-120b');
     }
   }
 
@@ -991,7 +1004,7 @@ if (typeof module !== 'undefined' && module.exports) {
     callGroq,
     callMistral,
     callGemini,
-    callXAI,
+    // callXAI, // [PAID TIER - REMOVED FROM ROTATION]
     callOpenRouter,
     callOmniRoute,
     dispatchToSubagent,
