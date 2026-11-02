@@ -1,0 +1,40 @@
+{
+  "permissions": {
+    "allow": [
+      "command(pwd)",
+      "command(Get-Location)",
+      "command(Get-ChildItem)",
+      "command(Get-Content)",
+      "command(Select-String)",
+      "command(Test-Path)",
+      "command(Resolve-Path)",
+      "command(dir)",
+      "command(ls)",
+      "command(cat)",
+      "command(echo)",
+      "command(which)",
+      "command(where)",
+      "command(where.exe)",
+      "command(python --version)",
+      "command(python3 --version)",
+      "command(node --version)",
+      "command(npm --version)",
+      "command(pnpm --version)",
+      "command(python -m pip list)",
+      "command(npm ls --depth=0)",
+      "command(git status)",
+      "command(git diff)",
+      "command(regex:git (log|branch|rev-parse|show|check-ref-format).*)",
+      "command(regex:python -m pytest.*)",
+      "command(regex:pytest.*)",
+      "command(regex:python -m compileall.*)",
+      "command(regex:(python|python3)?\\s*-?m?\\s*(ruff|mypy|black|flake8).*)",
+      "command(regex:npm (test|run (lint|test|build|typecheck|check)).*)",
+      "command(regex:npx (tsc|eslint|prettier|vitest|jest).*)",
+      "command(regex:pnpm (test|run (lint|test|build|typecheck)).*)",
+      "command(regex:pwsh\\s+(-File\\s+)?(\\.\\\\)?scripts\\\\verify\\.ps1.*)",
+      "command(regex:pwsh\\s+(-File\\s+)?(\\.\\\\)?scripts\\\\agent-alarm\\.ps1.*)",
+      "command(regex:node\\s+(\\.\\\\)?scripts\\\\subagent\\.js.*)"
+    ]
+  }
+}
