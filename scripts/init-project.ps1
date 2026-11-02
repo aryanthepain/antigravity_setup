@@ -48,13 +48,16 @@ if (Test-Path $TemplateDir) {
         "$TemplateDir\WORKING.md"         = "$TargetDir\WORKING.md"
         "$TemplateDir\verify.ps1"         = "$TargetDir\scripts\verify.ps1"
         "$TemplateDir\agent-alarm.ps1"    = "$TargetDir\scripts\agent-alarm.ps1"
+        "$TemplateDir\subagent.js"        = "$TargetDir\scripts\subagent.js"
+        "$TemplateDir\Invoke-Subagent.ps1" = "$TargetDir\scripts\Invoke-Subagent.ps1"
     }
 
     foreach ($src in $templateMap.Keys) {
+        $actualSrc = if (Test-Path $src) { $src } else { Join-Path $ScriptDir (Split-Path -Leaf $src) }
         $dst = $templateMap[$src]
-        if (Test-Path $src) {
+        if (Test-Path $actualSrc) {
             if (-not (Test-Path $dst)) {
-                Copy-Item -Path $src -Destination $dst -Force
+                Copy-Item -Path $actualSrc -Destination $dst -Force
                 Write-Host "  [+] Installed template: $dst" -ForegroundColor Green
             } else {
                 Write-Host "  [.] Preserved existing: $dst" -ForegroundColor Yellow
