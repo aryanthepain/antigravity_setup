@@ -48,13 +48,16 @@ if (Test-Path $TemplateDir) {
         "$TemplateDir\WORKING.md"         = "$TargetDir\WORKING.md"
         "$TemplateDir\verify.ps1"         = "$TargetDir\scripts\verify.ps1"
         "$TemplateDir\agent-alarm.ps1"    = "$TargetDir\scripts\agent-alarm.ps1"
+        "$TemplateDir\subagent.js"        = "$TargetDir\scripts\subagent.js"
+        "$TemplateDir\Invoke-Subagent.ps1" = "$TargetDir\scripts\Invoke-Subagent.ps1"
     }
 
     foreach ($src in $templateMap.Keys) {
+        $actualSrc = if (Test-Path $src) { $src } else { Join-Path $ScriptDir (Split-Path -Leaf $src) }
         $dst = $templateMap[$src]
-        if (Test-Path $src) {
+        if (Test-Path $actualSrc) {
             if (-not (Test-Path $dst)) {
-                Copy-Item -Path $src -Destination $dst -Force
+                Copy-Item -Path $actualSrc -Destination $dst -Force
                 Write-Host "  [+] Installed template: $dst" -ForegroundColor Green
             } else {
                 Write-Host "  [.] Preserved existing: $dst" -ForegroundColor Yellow
@@ -81,7 +84,20 @@ pwsh -File ./scripts/verify.ps1 -Quick
     }
 }
 
-# 4. Summary
+# 4. Fingerprint and Provision Workspace Skill Packs
+$mgrScript = Join-Path $env:USERPROFILE ".gemini\config\scripts\Manage-WorkspaceSkills.ps1"
+if (-not (Test-Path $mgrScript)) {
+    $mgrScript = Join-Path $ScriptDir "Manage-WorkspaceSkills.ps1"
+}
+if (Test-Path $mgrScript) {
+    try {
+        & pwsh -File $mgrScript -Action DetectAndAdd -TargetDir $TargetDir
+    } catch {
+        Write-Host "  [!] Could not run automatic skill pack detection." -ForegroundColor Yellow
+    }
+}
+
+# 5. Summary
 Write-Host "`n✅ Project '$ProjectName' initialized successfully!" -ForegroundColor Cyan
 Write-Host "Invariants & Skills: Inherited globally from ~/.gemini/config/" -ForegroundColor Gray
 Write-Host "Next Steps:" -ForegroundColor Yellow

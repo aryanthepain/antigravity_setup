@@ -137,7 +137,18 @@ if (Test-Path $zeroCostGate) {
     }
 }
 
-# 6. Agent Alarm Resolver
+# 6. Skill Vault & Dynamic Workspace Skills Gate
+$skillsGate = Join-Path $PSScriptRoot "..\tests\test-workspace-skills.ps1"
+if (Test-Path $skillsGate) {
+    Write-Host ""
+    pwsh -File $skillsGate
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "❌ Skill Vault verification failed!" -ForegroundColor Red
+        $failed = $true
+    }
+}
+
+# 7. Agent Alarm Resolver
 $alarmScript = Join-Path $PSScriptRoot "agent-alarm.ps1"
 if (-not (Test-Path $alarmScript)) {
     $alarmScript = Join-Path $env:USERPROFILE ".gemini\config\skills\agent-alarm\scripts\agent-alarm.ps1"
