@@ -1,7 +1,10 @@
 {
   "mcpServers": {
     "notion": {
-      "url": "https://mcp.notion.com/mcp"
+      "url": "https://mcp.notion.com/mcp",
+      "headers": {
+        "Authorization": "Bearer 206d872b-594c-8162-9e14-00024a96dcc0:4nWBnnVl2xdiWtNa:Adiq3nAjT7czBwaO_iPaDsJg7BQZ89kj"
+      }
     }
   }
 }
