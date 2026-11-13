@@ -78,7 +78,9 @@ function parseArgs() {
     listModels: false,
     refreshModels: false,
     mode: 'read', // read | write
-    confirm: false
+    confirm: false,
+    tool: '',
+    toolArgs: ''
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -99,6 +101,8 @@ function parseArgs() {
     else if (arg === '--router' || arg === '-r') params.router = args[++i];
     else if (arg === '--mode') params.mode = args[++i];
     else if (arg === '--confirm') params.confirm = true;
+    else if (arg === '--tool') params.tool = args[++i];
+    else if (arg === '--tool-args') params.toolArgs = args[++i];
     else if (arg === '--list-models' || arg === '-l') params.listModels = true;
     else if (arg === '--refresh-models') params.refreshModels = true;
     else if (!arg.startsWith('-') && !params.prompt) params.prompt = arg;
@@ -1055,10 +1059,32 @@ async function handleNotion(params) {
     if (!params.confirm) {
       console.log('⚠️ [STRICT CONFIRMATION REQUIRED]');
       console.log(`Action: Mutate Notion`);
-      console.log(`Instruction: ${query || '(No query provided)'}`);
+      console.log(`Instruction: ${query || params.tool || '(No query provided)'}`);
       console.log('To execute this mutation, re-run with --confirm:');
-      console.log(`  node ./scripts/subagent.js --task notion --mode write --query "${query}" --confirm`);
+      console.log(`  node ./scripts/subagent.js --task notion --mode write --query "${query || ''}" --confirm`);
       return;
+    }
+
+    if (params.tool) {
+      let argsObj = {};
+      if (params.toolArgs) {
+        try {
+          argsObj = JSON.parse(params.toolArgs);
+        } catch (e) {
+          console.error(`❌ Invalid --tool-args JSON: ${e.message}`);
+          process.exit(1);
+        }
+      }
+      console.log(`⏳ Executing Notion MCP mutation tool: ${params.tool}...`);
+      try {
+        const res = await callNotionMcp(params.tool, argsObj);
+        console.log(`✅ [Notion Operator] Mutation Succeeded:`);
+        console.log(typeof res === 'object' ? JSON.stringify(res, null, 2) : res);
+        return;
+      } catch (err) {
+        console.error(`❌ Notion MCP mutation failed: ${err.message}`);
+        process.exit(1);
+      }
     }
 
     console.log(`⏳ Executing Notion mutation: "${query}"...`);
