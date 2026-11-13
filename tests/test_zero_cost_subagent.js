@@ -233,10 +233,10 @@ async function main() {
     const res = spawnSync('node', [SCRIPT_PATH, '--usage'], { encoding: 'utf-8' });
     assert.strictEqual(res.status, 0, `Expected exit 0, got ${res.status}: ${res.stderr}`);
     assert.ok(res.stdout.includes('SUBAGENT USAGE & METRICS DASHBOARD'), 'Output should contain dashboard header');
-    assert.ok(res.stdout.includes('https://openrouter.ai/activity'), 'Output should contain OpenRouter link');
-    assert.ok(res.stdout.includes('https://console.groq.com/usage'), 'Output should contain Groq link');
-    assert.ok(res.stdout.includes('https://console.mistral.ai/usage/'), 'Output should contain Mistral link');
-    assert.ok(res.stdout.includes('https://aistudio.google.com/'), 'Output should contain Gemini link');
+    assert.ok(res.stdout.includes('https://openrouter.ai/settings/profile'), 'Output should contain OpenRouter profile link');
+    assert.ok(res.stdout.includes('https://console.groq.com/dashboard/usage'), 'Output should contain Groq dashboard link');
+    assert.ok(res.stdout.includes('https://admin.mistral.ai/organization/usage'), 'Output should contain Mistral admin link');
+    assert.ok(res.stdout.includes('https://aistudio.google.com/u/1/usage'), 'Output should contain Gemini AI Studio usage link');
   });
 
   runTest('CLI executes --usage --json and outputs valid JSON with metrics', () => {
