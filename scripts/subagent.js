@@ -35,25 +35,26 @@ const OPENROUTER_CACHE_FILE = path.join(CACHE_DIR, 'openrouter_free_models.json'
 const PROVIDER_LINKS = {
   openrouter: {
     name: 'OpenRouter',
-    usageUrl: 'https://openrouter.ai/activity',
+    usageUrl: 'https://openrouter.ai/settings/profile',
+    activityUrl: 'https://openrouter.ai/activity',
     creditsUrl: 'https://openrouter.ai/credits',
     docsUrl: 'https://openrouter.ai/docs'
   },
   groq: {
     name: 'Groq LPU',
-    usageUrl: 'https://console.groq.com/usage',
+    usageUrl: 'https://console.groq.com/dashboard/usage',
     limitsUrl: 'https://console.groq.com/settings/limits',
     docsUrl: 'https://console.groq.com/docs'
   },
   mistral: {
     name: 'Mistral AI',
-    usageUrl: 'https://console.mistral.ai/usage/',
+    usageUrl: 'https://admin.mistral.ai/organization/usage',
     billingUrl: 'https://console.mistral.ai/billing/',
     docsUrl: 'https://docs.mistral.ai/'
   },
   gemini: {
     name: 'Google Gemini',
-    usageUrl: 'https://aistudio.google.com/',
+    usageUrl: 'https://aistudio.google.com/u/1/usage',
     metricsUrl: 'https://console.cloud.google.com/apis/api/generativelanguage.googleapis.com/metrics',
     quotasUrl: 'https://console.cloud.google.com/apis/api/generativelanguage.googleapis.com/quotas'
   },
@@ -637,7 +638,8 @@ async function printUsageMetrics(asJson = false) {
     }
   }
   console.log('   Web Dashboards & Metrics:');
-  console.log(`     • Usage & Activity:         ${PROVIDER_LINKS.openrouter.usageUrl}`);
+  console.log(`     • Profile & Usage:          ${PROVIDER_LINKS.openrouter.usageUrl}`);
+  console.log(`     • Activity:                 ${PROVIDER_LINKS.openrouter.activityUrl}`);
   console.log(`     • Credits & Billing:        ${PROVIDER_LINKS.openrouter.creditsUrl}`);
 
   // 2. Groq LPU
