@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Antigravity Workspace Skill & Capability Manager (Manage-WorkspaceSkills.ps1)
     Dynamically binds domain skill packs and MCP servers from ~/.gemini/config/skills-vault/
