@@ -29,7 +29,7 @@ param(
     [ValidateSet("List", "Status", "Detect", "DetectAndAdd", "Add", "Remove")]
     [string]$Action = "Status",
 
-    [ValidateSet("web-frontend", "cloud-data", "runtimes", "notion", "all", "")]
+    [ValidateSet("web-frontend", "cloud-data", "runtimes", "notion", "lovable", "strix-security", "all", "")]
     [string]$Pack = "",
 
     [string]$TargetDir = (Get-Location).Path,
@@ -37,6 +37,8 @@ param(
     [switch]$WithPlaywright,
     [switch]$WithCloudMCP,
     [switch]$WithNotionMCP,
+    [switch]$WithLovableMCP,
+    [switch]$WithStrixMCP,
     [switch]$Quiet
 )
 
@@ -241,8 +243,9 @@ function Add-PackToProject {
         }
     }
 
-    # Notion Remote MCP is opt-in or bound with notion pack
-    if ($WithNotionMCP -or $PackName -eq "notion") {
+    # Generic Vault Pack MCP Loader (for notion, lovable, strix-security, etc.)
+    $packMcpFile = Join-Path $VaultDir "$PackName\mcp_config.json"
+    if (Test-Path $packMcpFile) {
         $mcpConfig = @{ mcpServers = @{} }
         if (Test-Path $McpJsonPath) {
             try {
@@ -254,15 +257,19 @@ function Add-PackToProject {
                 }
             } catch {}
         }
-
-        $mcpConfig.mcpServers["notion"] = [PSCustomObject]@{
-            url = "https://mcp.notion.com/mcp"
-        }
-        $mcpJsonOut = $mcpConfig | ConvertTo-Json -Depth 5
-        Set-Content -Path $McpJsonPath -Value $mcpJsonOut -Encoding UTF8
-        if (-not $Quiet) {
-            Write-Host "  [+] Configured Notion Remote MCP server in $McpJsonPath (Streamable HTTP)" -ForegroundColor Green
-        }
+        try {
+            $vaultMcp = Get-Content -Raw -Path $packMcpFile | ConvertFrom-Json
+            if ($vaultMcp.mcpServers) {
+                foreach ($prop in $vaultMcp.mcpServers.PSObject.Properties) {
+                    $mcpConfig.mcpServers[$prop.Name] = $prop.Value
+                    if (-not $Quiet) {
+                        Write-Host "  [+] Configured '$($prop.Name)' MCP server from vault pack '$PackName' in $McpJsonPath" -ForegroundColor Green
+                    }
+                }
+                $mcpJsonOut = $mcpConfig | ConvertTo-Json -Depth 5
+                Set-Content -Path $McpJsonPath -Value $mcpJsonOut -Encoding UTF8
+            }
+        } catch {}
     }
 }
 
@@ -310,21 +317,25 @@ function Remove-PackFromProject {
         } catch {}
     }
 
-    # If notion, remove Notion MCP
-    if ($PackName -eq "notion" -and (Test-Path $McpJsonPath)) {
+    # Generic Vault Pack MCP Unloader
+    $packMcpFile = Join-Path $VaultDir "$PackName\mcp_config.json"
+    if ((Test-Path $packMcpFile) -and (Test-Path $McpJsonPath)) {
         try {
+            $vaultMcp = Get-Content -Raw -Path $packMcpFile | ConvertFrom-Json
             $rawMcp = Get-Content -Raw -Path $McpJsonPath | ConvertFrom-Json
-            if ($rawMcp.mcpServers -and $rawMcp.mcpServers.PSObject.Properties.Match("notion").Count -gt 0) {
+            if ($vaultMcp.mcpServers -and $rawMcp.mcpServers) {
+                $vaultNames = $vaultMcp.mcpServers.PSObject.Properties | Select-Object -ExpandProperty Name
                 $newServers = @{}
                 foreach ($prop in $rawMcp.mcpServers.PSObject.Properties) {
-                    if ($prop.Name -ne "notion") {
+                    if ($prop.Name -notin $vaultNames) {
                         $newServers[$prop.Name] = $prop.Value
+                    } else {
+                        Write-Host "  [-] Removed '$($prop.Name)' MCP server from $McpJsonPath" -ForegroundColor Cyan
                     }
                 }
                 $rawMcp.mcpServers = $newServers
                 $mcpJsonOut = $rawMcp | ConvertTo-Json -Depth 5
                 Set-Content -Path $McpJsonPath -Value $mcpJsonOut -Encoding UTF8
-                Write-Host "  [-] Removed Notion MCP server from $McpJsonPath" -ForegroundColor Cyan
             }
         } catch {}
     }
