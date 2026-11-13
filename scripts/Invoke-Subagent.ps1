@@ -16,56 +16,60 @@
 
 [CmdletBinding()]
 param(
-  [Parameter(Mandatory=$false)]
-  [ValidateSet('research', 'code', 'review', 'compress', 'ask')]
+  [Parameter(Mandatory = $false)]
+  [ValidateSet('research', 'code', 'review', 'compress', 'ask', 'notion', 'usage', 'metrics')]
   [string]$Task = 'ask',
 
-  [Parameter(Mandatory=$false)]
+  [Parameter(Mandatory = $false)]
   [string]$Query,
 
-  [Parameter(Mandatory=$false)]
+  [Parameter(Mandatory = $false)]
   [string]$Prompt,
 
-  [Parameter(Mandatory=$false)]
+  [Parameter(Mandatory = $false)]
   [string]$Files,
 
-  [Parameter(Mandatory=$false)]
+  [Parameter(Mandatory = $false)]
   [string]$File,
 
-  [Parameter(Mandatory=$false)]
+  [Parameter(Mandatory = $false)]
   [switch]$Diff,
 
-  [Parameter(Mandatory=$false)]
+  [Parameter(Mandatory = $false)]
   [ValidateSet('fast', 'code', 'reasoning', 'cheap')]
   [string]$Tier = 'fast',
 
-  [Parameter(Mandatory=$false)]
+  [Parameter(Mandatory = $false)]
   [string]$Model,
 
-  [Parameter(Mandatory=$false)]
+  [Parameter(Mandatory = $false)]
   [int]$MaxTokens = 1024,
 
-  [Parameter(Mandatory=$false)]
+  [Parameter(Mandatory = $false)]
   [string]$Provider,
 
-  [Parameter(Mandatory=$false)]
+  [Parameter(Mandatory = $false)]
   [ValidateSet('auto', 'groq', 'direct')]
   [string]$Router = 'auto',
 
-  [Parameter(Mandatory=$false)]
+  [Parameter(Mandatory = $false)]
   [ValidateSet('intelligence', 'latest', 'code', 'reasoning', 'context')]
   [string]$Sort = 'intelligence',
 
-  [Parameter(Mandatory=$false)]
+  [Parameter(Mandatory = $false)]
   [switch]$ListModels,
 
-  [Parameter(Mandatory=$false)]
+  [Parameter(Mandatory = $false)]
   [switch]$RefreshModels,
 
-  [Parameter(Mandatory=$false)]
+  [Parameter(Mandatory = $false)]
+  [Alias('Metrics')]
+  [switch]$Usage,
+
+  [Parameter(Mandatory = $false)]
   [switch]$Json,
 
-  [Parameter(Mandatory=$false)]
+  [Parameter(Mandatory = $false)]
   [switch]$Help
 )
 
@@ -93,6 +97,16 @@ if ($ListModels) {
 
 if ($RefreshModels) {
   & node $subagentJs --refresh-models
+  exit 0
+}
+
+if ($Usage) {
+  if ($Json) {
+    & node $subagentJs --usage --json
+  }
+  else {
+    & node $subagentJs --usage
+  }
   exit 0
 }
 
