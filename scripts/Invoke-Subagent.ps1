@@ -17,7 +17,7 @@
 [CmdletBinding()]
 param(
   [Parameter(Mandatory=$false)]
-  [ValidateSet('research', 'code', 'review', 'compress', 'ask')]
+  [ValidateSet('research', 'code', 'review', 'compress', 'ask', 'notion', 'usage', 'metrics')]
   [string]$Task = 'ask',
 
   [Parameter(Mandatory=$false)]
@@ -63,6 +63,10 @@ param(
   [switch]$RefreshModels,
 
   [Parameter(Mandatory=$false)]
+  [Alias('Metrics')]
+  [switch]$Usage,
+
+  [Parameter(Mandatory=$false)]
   [switch]$Json,
 
   [Parameter(Mandatory=$false)]
@@ -93,6 +97,15 @@ if ($ListModels) {
 
 if ($RefreshModels) {
   & node $subagentJs --refresh-models
+  exit 0
+}
+
+if ($Usage) {
+  if ($Json) {
+    & node $subagentJs --usage --json
+  } else {
+    & node $subagentJs --usage
+  }
   exit 0
 }
 

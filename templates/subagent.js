@@ -31,6 +31,47 @@ const { execSync } = require('child_process');
 const CACHE_DIR = path.join(process.env.USERPROFILE || process.env.HOME || '.', '.gemini', 'config', 'cache');
 const OPENROUTER_CACHE_FILE = path.join(CACHE_DIR, 'openrouter_free_models.json');
 
+// Subagent Provider Dashboard & Usage URLs
+const PROVIDER_LINKS = {
+  openrouter: {
+    name: 'OpenRouter',
+    usageUrl: 'https://openrouter.ai/activity',
+    creditsUrl: 'https://openrouter.ai/credits',
+    docsUrl: 'https://openrouter.ai/docs'
+  },
+  groq: {
+    name: 'Groq LPU',
+    usageUrl: 'https://console.groq.com/usage',
+    limitsUrl: 'https://console.groq.com/settings/limits',
+    docsUrl: 'https://console.groq.com/docs'
+  },
+  mistral: {
+    name: 'Mistral AI',
+    usageUrl: 'https://console.mistral.ai/usage/',
+    billingUrl: 'https://console.mistral.ai/billing/',
+    docsUrl: 'https://docs.mistral.ai/'
+  },
+  gemini: {
+    name: 'Google Gemini',
+    usageUrl: 'https://aistudio.google.com/',
+    metricsUrl: 'https://console.cloud.google.com/apis/api/generativelanguage.googleapis.com/metrics',
+    quotasUrl: 'https://console.cloud.google.com/apis/api/generativelanguage.googleapis.com/quotas'
+  },
+  notion: {
+    name: 'Notion MCP',
+    usageUrl: 'https://www.notion.so/profile/integrations',
+    docsUrl: 'https://developers.notion.com/'
+  }
+};
+
+function wrapResponse(content, usage) {
+  return {
+    content: content || '',
+    usage: usage || null,
+    toString: () => content || ''
+  };
+}
+
 // Path Traversal Security Guard: restricts file access strictly within current working directory
 function isSafePath(filePath) {
   if (!filePath || typeof filePath !== 'string') return false;
@@ -77,6 +118,7 @@ function parseArgs() {
     router: 'auto', // auto | groq | direct
     listModels: false,
     refreshModels: false,
+    usage: false,
     mode: 'read', // read | write
     confirm: false,
     tool: '',
@@ -105,6 +147,7 @@ function parseArgs() {
     else if (arg === '--tool-args') params.toolArgs = args[++i];
     else if (arg === '--list-models' || arg === '-l') params.listModels = true;
     else if (arg === '--refresh-models') params.refreshModels = true;
+    else if (arg === '--usage' || arg === '-u' || arg === '--metrics') params.usage = true;
     else if (!arg.startsWith('-') && !params.prompt) params.prompt = arg;
   }
 
@@ -130,10 +173,11 @@ Tasks:
   review, adversarial Independent adversarial review on git diff or specific files.
   compress, logs      Compress verbose terminal or test runner logs down to root causes & 1-line fix.
   notion              Retrieve and compress Notion pages/databases or perform guarded mutations.
+  usage, metrics      Query live subagent endpoints for token usage, account quotas, and dashboard URLs.
   ask (default)       General fast queries or lightweight assistant responses.
 
 Options:
-  -t, --task <type>       Task mode: research | code | review | compress | notion | ask (default: ask)
+  -t, --task <type>       Task mode: research | code | review | compress | notion | usage | ask (default: ask)
   -q, --query <string>    Research query or search question
   -p, --prompt <string>   Prompt instructions for code, ask, or compress
   -f, --file <path>       Target file path to inspect, modify, or review
@@ -148,11 +192,13 @@ Options:
       --confirm           Confirm guarded write operations for Notion mutations
   -l, --list-models       Display discovered and ranked zero-cost models table
       --refresh-models    Force refresh of OpenRouter free models cache
+  -u, --usage, --metrics  Display live usage metrics, token quotas, and dashboard URLs for all subagents
       --max-tokens <int>  Maximum output tokens (default: 1024)
       --json              Output response as structured JSON ({ provider, model, output })
   -h, --help              Show this help menu and exit
 
 Examples:
+  node ./scripts/subagent.js --usage
   node ./scripts/subagent.js --list-models --sort intelligence
   node ./scripts/subagent.js --task research --query "How does auth work?" --files "src/auth.ts,src/server.ts"
   node ./scripts/subagent.js --task code --file "src/utils.ts" --prompt "Add UUID generator"
@@ -387,6 +433,281 @@ Output ONLY the chosen model id from the candidate list, nothing else.`;
 }
 
 // -------------------------------------------------------------
+// Live Subagent Usage & Metrics Endpoints
+// -------------------------------------------------------------
+
+async function fetchOpenRouterMetrics() {
+  if (!KEYS.openrouter) return { provider: 'OpenRouter', configured: false, error: 'OPENROUTER_API_KEY not set', links: PROVIDER_LINKS.openrouter };
+  try {
+    const res = await fetch('https://openrouter.ai/api/v1/auth/key', {
+      headers: { 'Authorization': `Bearer ${KEYS.openrouter}` }
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    const data = await res.json();
+    const keyData = data.data || {};
+
+    let creditsData = null;
+    try {
+      const credRes = await fetch('https://openrouter.ai/api/v1/credits', {
+        headers: { 'Authorization': `Bearer ${KEYS.openrouter}` }
+      });
+      if (credRes.ok) creditsData = (await credRes.json())?.data;
+    } catch {}
+
+    return {
+      provider: 'OpenRouter',
+      configured: true,
+      label: keyData.label || 'N/A',
+      isFreeTier: keyData.is_free_tier ?? true,
+      usageUsd: keyData.usage !== undefined ? `$${Number(keyData.usage).toFixed(4)}` : 'N/A',
+      limitUsd: keyData.limit !== null && keyData.limit !== undefined ? `$${Number(keyData.limit).toFixed(4)}` : 'Unlimited',
+      limitRemainingUsd: keyData.limit_remaining !== undefined ? `$${Number(keyData.limit_remaining).toFixed(4)}` : 'N/A',
+      freeDailyRequests: keyData.free_model_daily_requests ? {
+        used: keyData.free_model_daily_requests.used,
+        limit: keyData.free_model_daily_requests.limit,
+        remaining: keyData.free_model_daily_requests.remaining
+      } : null,
+      totalCredits: creditsData ? `$${Number(creditsData.total_credits || 0).toFixed(4)}` : null,
+      links: PROVIDER_LINKS.openrouter
+    };
+  } catch (err) {
+    return { provider: 'OpenRouter', configured: true, error: err.message, links: PROVIDER_LINKS.openrouter };
+  }
+}
+
+async function fetchGroqMetrics() {
+  if (!KEYS.groq) return { provider: 'Groq LPU', configured: false, error: 'GROQ_API_KEY not set', links: PROVIDER_LINKS.groq };
+  try {
+    const res = await fetch('https://api.groq.com/openai/v1/models', {
+      headers: { 'Authorization': `Bearer ${KEYS.groq}` }
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+
+    const remainingReq = res.headers.get('x-ratelimit-remaining-requests');
+    const limitReq = res.headers.get('x-ratelimit-limit-requests');
+    const remainingTokens = res.headers.get('x-ratelimit-remaining-tokens');
+    const limitTokens = res.headers.get('x-ratelimit-limit-tokens');
+    const resetTokens = res.headers.get('x-ratelimit-reset-tokens');
+
+    return {
+      provider: 'Groq LPU',
+      configured: true,
+      rateLimits: {
+        remainingRequests: remainingReq || 'N/A',
+        limitRequests: limitReq || 'N/A',
+        remainingTokens: remainingTokens || 'N/A',
+        limitTokens: limitTokens || 'N/A',
+        resetTokens: resetTokens || 'N/A'
+      },
+      links: PROVIDER_LINKS.groq
+    };
+  } catch (err) {
+    return { provider: 'Groq LPU', configured: true, error: err.message, links: PROVIDER_LINKS.groq };
+  }
+}
+
+async function fetchMistralMetrics() {
+  if (!KEYS.mistral) return { provider: 'Mistral AI', configured: false, error: 'MISTRAL_API_KEY not set', links: PROVIDER_LINKS.mistral };
+  try {
+    const res = await fetch('https://api.mistral.ai/v1/models', {
+      headers: { 'Authorization': `Bearer ${KEYS.mistral}` }
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+
+    const remainingReq = res.headers.get('x-ratelimit-remaining-req-minute');
+    const limitReq = res.headers.get('x-ratelimit-limit-req-minute');
+    const remainingTokens = res.headers.get('x-ratelimit-remaining-tokens-minute');
+    const limitTokens = res.headers.get('x-ratelimit-limit-tokens-minute');
+
+    return {
+      provider: 'Mistral AI',
+      configured: true,
+      rateLimits: {
+        remainingRequestsMinute: remainingReq || 'N/A',
+        limitRequestsMinute: limitReq || 'N/A',
+        remainingTokensMinute: remainingTokens || 'N/A',
+        limitTokensMinute: limitTokens || 'N/A'
+      },
+      links: PROVIDER_LINKS.mistral
+    };
+  } catch (err) {
+    return { provider: 'Mistral AI', configured: true, error: err.message, links: PROVIDER_LINKS.mistral };
+  }
+}
+
+async function fetchGeminiMetrics() {
+  if (!KEYS.gemini) return { provider: 'Google Gemini', configured: false, error: 'GEMINI_API_KEY not set', links: PROVIDER_LINKS.gemini };
+  try {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${KEYS.gemini}`);
+    const isOk = res.ok;
+    return {
+      provider: 'Google Gemini',
+      configured: true,
+      status: isOk ? 'Active (API key verified)' : `HTTP ${res.status}`,
+      links: PROVIDER_LINKS.gemini
+    };
+  } catch (err) {
+    return { provider: 'Google Gemini', configured: true, error: err.message, links: PROVIDER_LINKS.gemini };
+  }
+}
+
+function fetchNotionMetrics() {
+  const vaultTokenFile = path.join(
+    process.env.USERPROFILE || process.env.HOME || '.',
+    '.gemini', 'config', 'skills-vault', 'notion', 'token.json'
+  );
+  const workspaceMcpFile = path.join(process.cwd(), '.agents', 'mcp_config.json');
+
+  let configured = false;
+  let status = 'Token not found';
+
+  if (fs.existsSync(vaultTokenFile)) {
+    try {
+      const data = JSON.parse(fs.readFileSync(vaultTokenFile, 'utf-8'));
+      if (data && data.access_token) {
+        configured = true;
+        status = 'OAuth Token Configured in Skill Vault';
+      }
+    } catch {}
+  }
+
+  if (!configured && fs.existsSync(workspaceMcpFile)) {
+    try {
+      const data = JSON.parse(fs.readFileSync(workspaceMcpFile, 'utf-8'));
+      const auth = data?.mcpServers?.notion?.headers?.Authorization;
+      if (auth && auth.startsWith('Bearer ')) {
+        configured = true;
+        status = 'Bearer Token Configured in Workspace MCP';
+      }
+    } catch {}
+  }
+
+  return {
+    provider: 'Notion MCP',
+    configured,
+    status,
+    error: configured ? null : 'Notion OAuth token not found',
+    links: PROVIDER_LINKS.notion
+  };
+}
+
+async function fetchAllSubagentMetrics() {
+  const [openrouter, groq, mistral, gemini] = await Promise.all([
+    fetchOpenRouterMetrics(),
+    fetchGroqMetrics(),
+    fetchMistralMetrics(),
+    fetchGeminiMetrics()
+  ]);
+  const notion = fetchNotionMetrics();
+  return { openrouter, groq, mistral, gemini, notion };
+}
+
+async function printUsageMetrics(asJson = false) {
+  if (!asJson) {
+    console.log('🔍 Querying live subagent endpoints for usage & quota metrics...\n');
+  }
+  const metrics = await fetchAllSubagentMetrics();
+
+  if (asJson) {
+    console.log(JSON.stringify(metrics, null, 2));
+    return;
+  }
+
+  console.log('='.repeat(80));
+  console.log('📊 ANTIGRAVITY SUBAGENT USAGE & METRICS DASHBOARD');
+  console.log('='.repeat(80));
+
+  // 1. OpenRouter
+  console.log('\n1. 🌐 OpenRouter (Zero-Cost Models)');
+  if (!metrics.openrouter.configured) {
+    console.log(`   Status: ⚠️ Not Configured (${metrics.openrouter.error})`);
+  } else if (metrics.openrouter.error) {
+    console.log(`   Status: ❌ Error connecting (${metrics.openrouter.error})`);
+  } else {
+    console.log(`   Status: ✅ Connected (Key: ${metrics.openrouter.label} | Free Tier: ${metrics.openrouter.isFreeTier})`);
+    console.log('   Live Account Metrics:');
+    console.log(`     • Total Usage (USD):        ${metrics.openrouter.usageUsd}`);
+    console.log(`     • Spending Limit Remaining: ${metrics.openrouter.limitRemainingUsd}`);
+    if (metrics.openrouter.freeDailyRequests) {
+      const f = metrics.openrouter.freeDailyRequests;
+      console.log(`     • Free Daily Requests:      ${f.used} used / ${f.limit} limit (${f.remaining} remaining)`);
+    }
+    if (metrics.openrouter.totalCredits !== null) {
+      console.log(`     • Total Account Credits:    ${metrics.openrouter.totalCredits}`);
+    }
+  }
+  console.log('   Web Dashboards & Metrics:');
+  console.log(`     • Usage & Activity:         ${PROVIDER_LINKS.openrouter.usageUrl}`);
+  console.log(`     • Credits & Billing:        ${PROVIDER_LINKS.openrouter.creditsUrl}`);
+
+  // 2. Groq LPU
+  console.log('\n2. ⚡ Groq LPU (Ultra-Fast 120B & Neural Router)');
+  if (!metrics.groq.configured) {
+    console.log(`   Status: ⚠️ Not Configured (${metrics.groq.error})`);
+  } else if (metrics.groq.error) {
+    console.log(`   Status: ❌ Error connecting (${metrics.groq.error})`);
+  } else {
+    console.log('   Status: ✅ Connected (API Key verified)');
+    if (metrics.groq.rateLimits && metrics.groq.rateLimits.remainingRequests !== 'N/A') {
+      console.log('   Live Rate Limits:');
+      console.log(`     • Request Quota:            ${metrics.groq.rateLimits.remainingRequests} / ${metrics.groq.rateLimits.limitRequests} remaining`);
+      console.log(`     • Token Quota:              ${metrics.groq.rateLimits.remainingTokens} / ${metrics.groq.rateLimits.limitTokens} remaining`);
+      console.log(`     • Token Reset Window:       ${metrics.groq.rateLimits.resetTokens}`);
+    }
+  }
+  console.log('   Web Dashboards & Metrics:');
+  console.log(`     • Usage & Analytics:        ${PROVIDER_LINKS.groq.usageUrl}`);
+  console.log(`     • Rate Limits & Quotas:     ${PROVIDER_LINKS.groq.limitsUrl}`);
+
+  // 3. Mistral AI
+  console.log('\n3. 🧠 Mistral AI (Codestral Surgical Code Generator)');
+  if (!metrics.mistral.configured) {
+    console.log(`   Status: ⚠️ Not Configured (${metrics.mistral.error})`);
+  } else if (metrics.mistral.error) {
+    console.log(`   Status: ❌ Error connecting (${metrics.mistral.error})`);
+  } else {
+    console.log('   Status: ✅ Connected (API Key verified)');
+    if (metrics.mistral.rateLimits && metrics.mistral.rateLimits.remainingRequestsMinute !== 'N/A') {
+      console.log('   Live Rate Limits:');
+      console.log(`     • Requests per Minute:      ${metrics.mistral.rateLimits.remainingRequestsMinute} / ${metrics.mistral.rateLimits.limitRequestsMinute} remaining`);
+      console.log(`     • Tokens per Minute:        ${metrics.mistral.rateLimits.remainingTokensMinute} / ${metrics.mistral.rateLimits.limitTokensMinute} remaining`);
+    }
+  }
+  console.log('   Web Dashboards & Metrics:');
+  console.log(`     • Usage Metrics:            ${PROVIDER_LINKS.mistral.usageUrl}`);
+  console.log(`     • Billing & Quotas:         ${PROVIDER_LINKS.mistral.billingUrl}`);
+
+  // 4. Google Gemini
+  console.log('\n4. 💎 Google Gemini (Multimodal Flash & Long-Context)');
+  if (!metrics.gemini.configured) {
+    console.log(`   Status: ⚠️ Not Configured (${metrics.gemini.error})`);
+  } else if (metrics.gemini.error) {
+    console.log(`   Status: ❌ Error connecting (${metrics.gemini.error})`);
+  } else {
+    console.log(`   Status: ✅ ${metrics.gemini.status}`);
+  }
+  console.log('   Web Dashboards & Metrics:');
+  console.log(`     • AI Studio Dashboard:      ${PROVIDER_LINKS.gemini.usageUrl}`);
+  console.log(`     • GCP API Metrics:          ${PROVIDER_LINKS.gemini.metricsUrl}`);
+  console.log(`     • Quotas & System Limits:   ${PROVIDER_LINKS.gemini.quotasUrl}`);
+
+  // 5. Notion MCP
+  console.log('\n5. 📝 Notion MCP (Researcher & Operator)');
+  if (!metrics.notion.configured) {
+    console.log(`   Status: ⚠️ Not Configured (${metrics.notion.error})`);
+  } else {
+    console.log(`   Status: ✅ Connected (${metrics.notion.status})`);
+  }
+  console.log('   Web Dashboards & Metrics:');
+  console.log(`     • Notion Integrations:      ${PROVIDER_LINKS.notion.usageUrl}`);
+
+  console.log('\n' + '='.repeat(80));
+  console.log('💡 Note: Every subagent execution also reports real-time prompt, completion,');
+  console.log('   and total token counts along with the active provider\'s dashboard link.');
+  console.log('='.repeat(80));
+}
+
+// -------------------------------------------------------------
 // Model Provider Implementations
 // -------------------------------------------------------------
 
@@ -413,7 +734,13 @@ async function callGroq(prompt, systemPrompt, model = 'openai/gpt-oss-120b', max
   }
   const data = await res.json();
   if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
-  return data.choices?.[0]?.message?.content?.trim() || '';
+  const content = data.choices?.[0]?.message?.content?.trim() || '';
+  const usage = data.usage ? {
+    promptTokens: data.usage.prompt_tokens ?? null,
+    completionTokens: data.usage.completion_tokens ?? null,
+    totalTokens: data.usage.total_tokens ?? null
+  } : null;
+  return wrapResponse(content, usage);
 }
 
 async function callMistral(prompt, systemPrompt, model = 'codestral-latest', maxTokens = 1024) {
@@ -448,7 +775,13 @@ async function callMistral(prompt, systemPrompt, model = 'codestral-latest', max
     }
     throw new Error(data.error.message || JSON.stringify(data.error));
   }
-  return data.choices?.[0]?.message?.content?.trim() || '';
+  const content = data.choices?.[0]?.message?.content?.trim() || '';
+  const usage = data.usage ? {
+    promptTokens: data.usage.prompt_tokens ?? null,
+    completionTokens: data.usage.completion_tokens ?? null,
+    totalTokens: data.usage.total_tokens ?? null
+  } : null;
+  return wrapResponse(content, usage);
 }
 
 async function callGemini(prompt, systemPrompt, model = 'gemini-3.8-flash', maxTokens = 1024) {
@@ -471,7 +804,14 @@ async function callGemini(prompt, systemPrompt, model = 'gemini-3.8-flash', maxT
   }
   const data = await res.json();
   if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
-  return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+  const content = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '';
+  const usageMeta = data.usageMetadata;
+  const usage = usageMeta ? {
+    promptTokens: usageMeta.promptTokenCount ?? null,
+    completionTokens: usageMeta.candidatesTokenCount ?? null,
+    totalTokens: usageMeta.totalTokenCount ?? null
+  } : null;
+  return wrapResponse(content, usage);
 }
 
 /*
@@ -573,7 +913,13 @@ async function callOpenRouter(prompt, systemPrompt, model = 'openrouter/free', m
 
   const data = await res.json();
   if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
-  return data.choices?.[0]?.message?.content?.trim() || '';
+  const content = data.choices?.[0]?.message?.content?.trim() || '';
+  const usage = data.usage ? {
+    promptTokens: data.usage.prompt_tokens ?? null,
+    completionTokens: data.usage.completion_tokens ?? null,
+    totalTokens: data.usage.total_tokens ?? null
+  } : null;
+  return wrapResponse(content, usage);
 }
 
 // OmniRoute / Local gateway check
@@ -592,7 +938,13 @@ async function callOmniRoute(prompt, systemPrompt, model, maxTokens = 1024) {
   });
   const data = await res.json();
   if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
-  return data.choices?.[0]?.message?.content?.trim() || '';
+  const content = data.choices?.[0]?.message?.content?.trim() || '';
+  const usage = data.usage ? {
+    promptTokens: data.usage.prompt_tokens ?? null,
+    completionTokens: data.usage.completion_tokens ?? null,
+    totalTokens: data.usage.total_tokens ?? null
+  } : null;
+  return wrapResponse(content, usage);
 }
 
 // -------------------------------------------------------------
@@ -600,12 +952,17 @@ async function callOmniRoute(prompt, systemPrompt, model, maxTokens = 1024) {
 // -------------------------------------------------------------
 
 async function dispatchToSubagent(prompt, systemPrompt, tier = 'fast', preferredModel = '', maxTokens = 1024, preferredProvider = '', options = {}) {
-  const tryCall = async (fn, name, modelName = '') => {
+  const tryCall = async (fn, name, modelName = '', providerKey = 'openrouter') => {
     try {
-      const output = await fn();
-      return { success: true, provider: name, model: modelName, output };
+      const res = await fn();
+      const output = (typeof res === 'object' && res !== null && res.content !== undefined)
+        ? res.content
+        : (typeof res === 'string' ? res : JSON.stringify(res));
+      const usage = (typeof res === 'object' && res !== null && res.usage) ? res.usage : null;
+      const dashboardUrl = PROVIDER_LINKS[providerKey]?.usageUrl || '';
+      return { success: true, provider: name, model: modelName, output, usage, dashboardUrl, providerKey };
     } catch (err) {
-      return { success: false, provider: name, model: modelName, error: err.message };
+      return { success: false, provider: name, model: modelName, error: err.message, providerKey };
     }
   };
 
@@ -613,7 +970,18 @@ async function dispatchToSubagent(prompt, systemPrompt, tier = 'fast', preferred
   if (!preferredProvider || preferredProvider.toLowerCase() === 'omniroute') {
     try {
       const omniResult = await callOmniRoute(prompt, systemPrompt, preferredModel, maxTokens);
-      if (omniResult) return { provider: 'OmniRoute Gateway', model: preferredModel || 'auto', output: omniResult };
+      if (omniResult) {
+        const output = typeof omniResult === 'object' && omniResult !== null && omniResult.content !== undefined ? omniResult.content : omniResult;
+        const usage = typeof omniResult === 'object' && omniResult !== null && omniResult.usage ? omniResult.usage : null;
+        return {
+          provider: 'OmniRoute Gateway',
+          model: preferredModel || 'auto',
+          output,
+          usage,
+          dashboardUrl: 'http://127.0.0.1:20128',
+          providerKey: 'omniroute'
+        };
+      }
     } catch (e) {
       // OmniRoute not active, proceed to direct APIs
     }
@@ -670,16 +1038,41 @@ async function dispatchToSubagent(prompt, systemPrompt, tier = 'fast', preferred
     const candidate = candidateList.find(c => c.id === groqChosenModel);
     if (candidate) {
       if (candidate.provider === 'OpenRouter' && KEYS.openrouter) {
-        attempts.push(() => callOpenRouter(prompt, systemPrompt, candidate.id, maxTokens), `OpenRouter (${candidate.id})`, candidate.id);
+        attempts.push({
+          fn: () => callOpenRouter(prompt, systemPrompt, candidate.id, maxTokens),
+          name: `OpenRouter (${candidate.id})`,
+          modelName: candidate.id,
+          providerKey: 'openrouter'
+        });
       } else if (candidate.id === 'codestral-latest' && KEYS.mistral) {
-        attempts.push(() => callMistral(prompt, systemPrompt, 'codestral-latest', maxTokens), 'Mistral Codestral', 'codestral-latest');
+        attempts.push({
+          fn: () => callMistral(prompt, systemPrompt, 'codestral-latest', maxTokens),
+          name: 'Mistral Codestral',
+          modelName: 'codestral-latest',
+          providerKey: 'mistral'
+        });
       } else if (candidate.id === 'gemini-3.8-flash' && KEYS.gemini) {
-        attempts.push(() => callGemini(prompt, systemPrompt, 'gemini-3.8-flash', maxTokens), 'Google Gemini Flash', 'gemini-3.8-flash');
+        attempts.push({
+          fn: () => callGemini(prompt, systemPrompt, 'gemini-3.8-flash', maxTokens),
+          name: 'Google Gemini Flash',
+          modelName: 'gemini-3.8-flash',
+          providerKey: 'gemini'
+        });
       } else if (candidate.id === 'openai/gpt-oss-120b' && KEYS.groq) {
-        attempts.push(() => callGroq(prompt, systemPrompt, 'openai/gpt-oss-120b', maxTokens), 'Groq LPU (GPT-OSS 120B)', 'openai/gpt-oss-120b');
+        attempts.push({
+          fn: () => callGroq(prompt, systemPrompt, 'openai/gpt-oss-120b', maxTokens),
+          name: 'Groq LPU (GPT-OSS 120B)',
+          modelName: 'openai/gpt-oss-120b',
+          providerKey: 'groq'
+        });
       // [PAID TIER - REMOVED FROM ROTATION]
       // } else if (candidate.id === 'grok-2-latest' && KEYS.xai) {
-      //   attempts.push(() => callXAI(prompt, systemPrompt, 'grok-2-latest', maxTokens), 'xAI Grok', 'grok-2-latest');
+      //   attempts.push({
+      //     fn: () => callXAI(prompt, systemPrompt, 'grok-2-latest', maxTokens),
+      //     name: 'xAI Grok',
+      //     modelName: 'grok-2-latest',
+      //     providerKey: 'xai'
+      //   });
       }
     }
   }
@@ -690,27 +1083,87 @@ async function dispatchToSubagent(prompt, systemPrompt, tier = 'fast', preferred
     if (prov === 'openrouter') {
       const topModel = preferredModel || (sortedFreeModels[0]?.id || 'openrouter/free');
       if (KEYS.openrouter) {
-        attempts.push(() => callOpenRouter(prompt, systemPrompt, topModel, maxTokens), `OpenRouter (${topModel})`, topModel);
+        attempts.push({
+          fn: () => callOpenRouter(prompt, systemPrompt, topModel, maxTokens),
+          name: `OpenRouter (${topModel})`,
+          modelName: topModel,
+          providerKey: 'openrouter'
+        });
         // Cascade to next 2 best OpenRouter free models
         sortedFreeModels.slice(1, 3).forEach(m => {
-          attempts.push(() => callOpenRouter(prompt, systemPrompt, m.id, maxTokens), `OpenRouter (${m.id})`, m.id);
+          attempts.push({
+            fn: () => callOpenRouter(prompt, systemPrompt, m.id, maxTokens),
+            name: `OpenRouter (${m.id})`,
+            modelName: m.id,
+            providerKey: 'openrouter'
+          });
         });
       }
-      if (KEYS.groq) attempts.push(() => callGroq(prompt, systemPrompt, 'openai/gpt-oss-120b', maxTokens), 'Groq LPU (OpenRouter fallback)', 'openai/gpt-oss-120b');
+      if (KEYS.groq) attempts.push({
+        fn: () => callGroq(prompt, systemPrompt, 'openai/gpt-oss-120b', maxTokens),
+        name: 'Groq LPU (OpenRouter fallback)',
+        modelName: 'openai/gpt-oss-120b',
+        providerKey: 'groq'
+      });
     } else if (prov === 'groq') {
-      if (KEYS.groq) attempts.push(() => callGroq(prompt, systemPrompt, preferredModel || 'openai/gpt-oss-120b', maxTokens), 'Groq LPU', preferredModel || 'openai/gpt-oss-120b');
-      if (KEYS.mistral) attempts.push(() => callMistral(prompt, systemPrompt, 'codestral-latest', maxTokens), 'Mistral Codestral (Groq fallback)', 'codestral-latest');
-      if (KEYS.gemini) attempts.push(() => callGemini(prompt, systemPrompt, 'gemini-3.8-flash', maxTokens), 'Google Gemini Flash (Groq fallback)', 'gemini-3.8-flash');
+      if (KEYS.groq) attempts.push({
+        fn: () => callGroq(prompt, systemPrompt, preferredModel || 'openai/gpt-oss-120b', maxTokens),
+        name: 'Groq LPU',
+        modelName: preferredModel || 'openai/gpt-oss-120b',
+        providerKey: 'groq'
+      });
+      if (KEYS.mistral) attempts.push({
+        fn: () => callMistral(prompt, systemPrompt, 'codestral-latest', maxTokens),
+        name: 'Mistral Codestral (Groq fallback)',
+        modelName: 'codestral-latest',
+        providerKey: 'mistral'
+      });
+      if (KEYS.gemini) attempts.push({
+        fn: () => callGemini(prompt, systemPrompt, 'gemini-3.8-flash', maxTokens),
+        name: 'Google Gemini Flash (Groq fallback)',
+        modelName: 'gemini-3.8-flash',
+        providerKey: 'gemini'
+      });
     } else if (prov === 'mistral') {
-      if (KEYS.mistral) attempts.push(() => callMistral(prompt, systemPrompt, preferredModel || 'codestral-latest', maxTokens), 'Mistral Codestral', preferredModel || 'codestral-latest');
-      if (KEYS.groq) attempts.push(() => callGroq(prompt, systemPrompt, 'openai/gpt-oss-120b', maxTokens), 'Groq LPU (Mistral fallback)', 'openai/gpt-oss-120b');
+      if (KEYS.mistral) attempts.push({
+        fn: () => callMistral(prompt, systemPrompt, preferredModel || 'codestral-latest', maxTokens),
+        name: 'Mistral Codestral',
+        modelName: preferredModel || 'codestral-latest',
+        providerKey: 'mistral'
+      });
+      if (KEYS.groq) attempts.push({
+        fn: () => callGroq(prompt, systemPrompt, 'openai/gpt-oss-120b', maxTokens),
+        name: 'Groq LPU (Mistral fallback)',
+        modelName: 'openai/gpt-oss-120b',
+        providerKey: 'groq'
+      });
     } else if (prov === 'gemini') {
-      if (KEYS.gemini) attempts.push(() => callGemini(prompt, systemPrompt, preferredModel || 'gemini-3.8-flash', maxTokens), 'Google Gemini Flash', preferredModel || 'gemini-3.8-flash');
-      if (KEYS.groq) attempts.push(() => callGroq(prompt, systemPrompt, 'openai/gpt-oss-120b', maxTokens), 'Groq LPU (Gemini fallback)', 'openai/gpt-oss-120b');
+      if (KEYS.gemini) attempts.push({
+        fn: () => callGemini(prompt, systemPrompt, preferredModel || 'gemini-3.8-flash', maxTokens),
+        name: 'Google Gemini Flash',
+        modelName: preferredModel || 'gemini-3.8-flash',
+        providerKey: 'gemini'
+      });
+      if (KEYS.groq) attempts.push({
+        fn: () => callGroq(prompt, systemPrompt, 'openai/gpt-oss-120b', maxTokens),
+        name: 'Groq LPU (Gemini fallback)',
+        modelName: 'openai/gpt-oss-120b',
+        providerKey: 'groq'
+      });
     // [PAID TIER - REMOVED FROM ROTATION]
     // } else if (prov === 'xai' || prov === 'grok') {
-    //   if (KEYS.xai) attempts.push(() => callXAI(prompt, systemPrompt, preferredModel || 'grok-2-latest', maxTokens), 'xAI Grok', preferredModel || 'grok-2-latest');
-    //   if (KEYS.groq) attempts.push(() => callGroq(prompt, systemPrompt, 'openai/gpt-oss-120b', maxTokens), 'Groq LPU (xAI fallback)', 'openai/gpt-oss-120b');
+    //   if (KEYS.xai) attempts.push({
+    //     fn: () => callXAI(prompt, systemPrompt, preferredModel || 'grok-2-latest', maxTokens),
+    //     name: 'xAI Grok',
+    //     modelName: preferredModel || 'grok-2-latest',
+    //     providerKey: 'xai'
+    //   });
+    //   if (KEYS.groq) attempts.push({
+    //     fn: () => callGroq(prompt, systemPrompt, 'openai/gpt-oss-120b', maxTokens),
+    //     name: 'Groq LPU (xAI fallback)',
+    //     modelName: 'openai/gpt-oss-120b',
+    //     providerKey: 'groq'
+    //   });
     }
   }
 
@@ -718,34 +1171,98 @@ async function dispatchToSubagent(prompt, systemPrompt, tier = 'fast', preferred
   if (tier === 'code' || tier === 'precision_coding') {
     // Coding hierarchy: Codestral -> Top OpenRouter Code Model -> Gemini 3.8 Flash -> Groq LPU
     const topCodeModel = sortedFreeModels.find(m => m.codeScore > m.intelligenceScore)?.id || sortedFreeModels[0]?.id;
-    if (KEYS.mistral) attempts.push(() => callMistral(prompt, systemPrompt, preferredModel || 'codestral-latest', maxTokens), 'Mistral Codestral', 'codestral-latest');
-    if (KEYS.openrouter && topCodeModel) attempts.push(() => callOpenRouter(prompt, systemPrompt, topCodeModel, maxTokens), `OpenRouter (${topCodeModel})`, topCodeModel);
-    if (KEYS.gemini) attempts.push(() => callGemini(prompt, systemPrompt, 'gemini-3.8-flash', maxTokens), 'Google Gemini Flash', 'gemini-3.8-flash');
-    if (KEYS.groq) attempts.push(() => callGroq(prompt, systemPrompt, 'openai/gpt-oss-120b', maxTokens), 'Groq LPU (GPT-OSS 120B)', 'openai/gpt-oss-120b');
+    if (KEYS.mistral) attempts.push({
+      fn: () => callMistral(prompt, systemPrompt, preferredModel || 'codestral-latest', maxTokens),
+      name: 'Mistral Codestral',
+      modelName: 'codestral-latest',
+      providerKey: 'mistral'
+    });
+    if (KEYS.openrouter && topCodeModel) attempts.push({
+      fn: () => callOpenRouter(prompt, systemPrompt, topCodeModel, maxTokens),
+      name: `OpenRouter (${topCodeModel})`,
+      modelName: topCodeModel,
+      providerKey: 'openrouter'
+    });
+    if (KEYS.gemini) attempts.push({
+      fn: () => callGemini(prompt, systemPrompt, 'gemini-3.8-flash', maxTokens),
+      name: 'Google Gemini Flash',
+      modelName: 'gemini-3.8-flash',
+      providerKey: 'gemini'
+    });
+    if (KEYS.groq) attempts.push({
+      fn: () => callGroq(prompt, systemPrompt, 'openai/gpt-oss-120b', maxTokens),
+      name: 'Groq LPU (GPT-OSS 120B)',
+      modelName: 'openai/gpt-oss-120b',
+      providerKey: 'groq'
+    });
   } else if (tier === 'reasoning' || tier === 'review') {
     // Reasoning / Review hierarchy: Top OpenRouter Reasoning Model -> Gemini 3.8 Flash -> Mistral -> Groq LPU
     const topReasoningModel = sortedFreeModels.find(m => m.hasReasoning)?.id || sortedFreeModels[0]?.id;
-    if (KEYS.openrouter && topReasoningModel) attempts.push(() => callOpenRouter(prompt, systemPrompt, topReasoningModel, maxTokens), `OpenRouter (${topReasoningModel})`, topReasoningModel);
-    if (KEYS.gemini) attempts.push(() => callGemini(prompt, systemPrompt, 'gemini-3.8-flash', maxTokens), 'Google Gemini Flash', 'gemini-3.8-flash');
-    if (KEYS.mistral) attempts.push(() => callMistral(prompt, systemPrompt, 'codestral-latest', maxTokens), 'Mistral Codestral', 'codestral-latest');
-    if (KEYS.groq) attempts.push(() => callGroq(prompt, systemPrompt, 'openai/gpt-oss-120b', maxTokens), 'Groq LPU (GPT-OSS 120B)', 'openai/gpt-oss-120b');
+    if (KEYS.openrouter && topReasoningModel) attempts.push({
+      fn: () => callOpenRouter(prompt, systemPrompt, topReasoningModel, maxTokens),
+      name: `OpenRouter (${topReasoningModel})`,
+      modelName: topReasoningModel,
+      providerKey: 'openrouter'
+    });
+    if (KEYS.gemini) attempts.push({
+      fn: () => callGemini(prompt, systemPrompt, 'gemini-3.8-flash', maxTokens),
+      name: 'Google Gemini Flash',
+      modelName: 'gemini-3.8-flash',
+      providerKey: 'gemini'
+    });
+    if (KEYS.mistral) attempts.push({
+      fn: () => callMistral(prompt, systemPrompt, 'codestral-latest', maxTokens),
+      name: 'Mistral Codestral',
+      modelName: 'codestral-latest',
+      providerKey: 'mistral'
+    });
+    if (KEYS.groq) attempts.push({
+      fn: () => callGroq(prompt, systemPrompt, 'openai/gpt-oss-120b', maxTokens),
+      name: 'Groq LPU (GPT-OSS 120B)',
+      modelName: 'openai/gpt-oss-120b',
+      providerKey: 'groq'
+    });
   } else {
     // Fast / Research default: Groq LPU (sub-second) -> Gemini 3.8 Flash -> Top OpenRouter Free -> Mistral
     const topFree = sortedFreeModels[0]?.id;
-    if (KEYS.groq) attempts.push(() => callGroq(prompt, systemPrompt, preferredModel || 'openai/gpt-oss-120b', maxTokens), 'Groq LPU (GPT-OSS 120B)', preferredModel || 'openai/gpt-oss-120b');
-    if (KEYS.gemini) attempts.push(() => callGemini(prompt, systemPrompt, 'gemini-3.8-flash', maxTokens), 'Google Gemini Flash', 'gemini-3.8-flash');
-    if (KEYS.openrouter && topFree) attempts.push(() => callOpenRouter(prompt, systemPrompt, topFree, maxTokens), `OpenRouter (${topFree})`, topFree);
-    if (KEYS.mistral) attempts.push(() => callMistral(prompt, systemPrompt, 'codestral-latest', maxTokens), 'Mistral Codestral', 'codestral-latest');
+    if (KEYS.groq) attempts.push({
+      fn: () => callGroq(prompt, systemPrompt, preferredModel || 'openai/gpt-oss-120b', maxTokens),
+      name: 'Groq LPU (GPT-OSS 120B)',
+      modelName: preferredModel || 'openai/gpt-oss-120b',
+      providerKey: 'groq'
+    });
+    if (KEYS.gemini) attempts.push({
+      fn: () => callGemini(prompt, systemPrompt, 'gemini-3.8-flash', maxTokens),
+      name: 'Google Gemini Flash',
+      modelName: 'gemini-3.8-flash',
+      providerKey: 'gemini'
+    });
+    if (KEYS.openrouter && topFree) attempts.push({
+      fn: () => callOpenRouter(prompt, systemPrompt, topFree, maxTokens),
+      name: `OpenRouter (${topFree})`,
+      modelName: topFree,
+      providerKey: 'openrouter'
+    });
+    if (KEYS.mistral) attempts.push({
+      fn: () => callMistral(prompt, systemPrompt, 'codestral-latest', maxTokens),
+      name: 'Mistral Codestral',
+      modelName: 'codestral-latest',
+      providerKey: 'mistral'
+    });
   }
 
   // Execute attempts in priority order
-  for (let i = 0; i < attempts.length; i += 3) {
-    const fn = attempts[i];
-    const name = attempts[i + 1];
-    const modelName = attempts[i + 2];
-    const res = await tryCall(fn, name, modelName);
+  for (const attempt of attempts) {
+    const res = await tryCall(attempt.fn, attempt.name, attempt.modelName, attempt.providerKey);
     if (res.success && res.output) {
-      return { provider: res.provider, model: res.model, output: res.output };
+      return {
+        provider: res.provider,
+        model: res.model,
+        output: res.output,
+        usage: res.usage,
+        dashboardUrl: res.dashboardUrl,
+        providerKey: res.providerKey
+      };
     }
   }
 
@@ -792,6 +1309,12 @@ Keep your response dense, structured, and under 250 tokens so the Chief Orchestr
   } else {
     console.log(`[🤖 Worker Subagent: ${result.provider} | Task: Research]`);
     console.log(result.output);
+    if (result.usage && (result.usage.totalTokens !== null || result.usage.promptTokens !== null)) {
+      console.log(`\n📊 [Usage Metrics] Tokens: Prompt: ${result.usage.promptTokens ?? 0} | Completion: ${result.usage.completionTokens ?? 0} | Total: ${result.usage.totalTokens ?? 0}`);
+    }
+    if (result.dashboardUrl) {
+      console.log(`🔗 [Usage Dashboard] ${result.dashboardUrl}`);
+    }
   }
 }
 
@@ -826,6 +1349,12 @@ If modifying an existing file, specify the exact lines or function to replace.`;
   } else {
     console.log(`[🤖 Worker Subagent: ${result.provider} | Task: Code Generation]`);
     console.log(result.output);
+    if (result.usage && (result.usage.totalTokens !== null || result.usage.promptTokens !== null)) {
+      console.log(`\n📊 [Usage Metrics] Tokens: Prompt: ${result.usage.promptTokens ?? 0} | Completion: ${result.usage.completionTokens ?? 0} | Total: ${result.usage.totalTokens ?? 0}`);
+    }
+    if (result.dashboardUrl) {
+      console.log(`🔗 [Usage Dashboard] ${result.dashboardUrl}`);
+    }
   }
 }
 
@@ -880,6 +1409,12 @@ Format output as a compact markdown table or bullet points:
   } else {
     console.log(`[🤖 Worker Subagent: ${result.provider} | Task: Adversarial Review]`);
     console.log(result.output);
+    if (result.usage && (result.usage.totalTokens !== null || result.usage.promptTokens !== null)) {
+      console.log(`\n📊 [Usage Metrics] Tokens: Prompt: ${result.usage.promptTokens ?? 0} | Completion: ${result.usage.completionTokens ?? 0} | Total: ${result.usage.totalTokens ?? 0}`);
+    }
+    if (result.dashboardUrl) {
+      console.log(`🔗 [Usage Dashboard] ${result.dashboardUrl}`);
+    }
   }
 }
 
@@ -922,6 +1457,12 @@ Keep output under 100 tokens.`;
   } else {
     console.log(`[🤖 Worker Subagent: ${result.provider} | Task: Log Compression]`);
     console.log(result.output);
+    if (result.usage && (result.usage.totalTokens !== null || result.usage.promptTokens !== null)) {
+      console.log(`\n📊 [Usage Metrics] Tokens: Prompt: ${result.usage.promptTokens ?? 0} | Completion: ${result.usage.completionTokens ?? 0} | Total: ${result.usage.totalTokens ?? 0}`);
+    }
+    if (result.dashboardUrl) {
+      console.log(`🔗 [Usage Dashboard] ${result.dashboardUrl}`);
+    }
   }
 }
 
@@ -952,6 +1493,12 @@ async function handleAsk(params) {
   } else {
     console.log(`[🤖 Worker Subagent: ${result.provider} | Tier: ${params.tier}]`);
     console.log(result.output);
+    if (result.usage && (result.usage.totalTokens !== null || result.usage.promptTokens !== null)) {
+      console.log(`\n📊 [Usage Metrics] Tokens: Prompt: ${result.usage.promptTokens ?? 0} | Completion: ${result.usage.completionTokens ?? 0} | Total: ${result.usage.totalTokens ?? 0}`);
+    }
+    if (result.dashboardUrl) {
+      console.log(`🔗 [Usage Dashboard] ${result.dashboardUrl}`);
+    }
   }
 }
 
@@ -1145,10 +1692,14 @@ Formatting Rules:
   );
 
   if (params.json) {
-    console.log(JSON.stringify({ query, result: result.output, raw: searchResult }, null, 2));
+    console.log(JSON.stringify({ query, result: result.output, raw: searchResult, usage: result.usage, dashboardUrl: PROVIDER_LINKS.notion.usageUrl }, null, 2));
   } else {
     console.log(`[🤖 Worker Subagent: ${result.provider} | Task: Notion Context Extraction]`);
     console.log(result.output);
+    if (result.usage && (result.usage.totalTokens !== null || result.usage.promptTokens !== null)) {
+      console.log(`\n📊 [Usage Metrics] Tokens: Prompt: ${result.usage.promptTokens ?? 0} | Completion: ${result.usage.completionTokens ?? 0} | Total: ${result.usage.totalTokens ?? 0}`);
+    }
+    console.log(`🔗 [Usage Dashboard] ${PROVIDER_LINKS.notion.usageUrl}`);
   }
 }
 
@@ -1158,19 +1709,28 @@ async function main() {
 
   if (params.help) {
     printHelp();
-    process.exit(0);
+    process.exitCode = 0;
+    return;
+  }
+
+  if (params.usage || params.task === 'usage' || params.task === 'metrics') {
+    await printUsageMetrics(params.json);
+    process.exitCode = 0;
+    return;
   }
 
   if (params.refreshModels) {
     console.log('🔄 Refreshing OpenRouter free models cache...');
     const data = await getOpenRouterFreeModels(true);
     console.log(`✅ Discovered and cached ${data.count} free models successfully.`);
-    process.exit(0);
+    process.exitCode = 0;
+    return;
   }
 
   if (params.listModels) {
     await printModelList(params.sort);
-    process.exit(0);
+    process.exitCode = 0;
+    return;
   }
 
   try {
@@ -1193,6 +1753,10 @@ async function main() {
         break;
       case 'notion':
         await handleNotion(params);
+        break;
+      case 'usage':
+      case 'metrics':
+        await printUsageMetrics(params.json);
         break;
       case 'ask':
       default:
@@ -1220,6 +1784,14 @@ if (typeof module !== 'undefined' && module.exports) {
     callOmniRoute,
     dispatchToSubagent,
     isModelVerifiedFree,
+    fetchOpenRouterMetrics,
+    fetchGroqMetrics,
+    fetchMistralMetrics,
+    fetchGeminiMetrics,
+    fetchNotionMetrics,
+    fetchAllSubagentMetrics,
+    printUsageMetrics,
+    PROVIDER_LINKS,
     KEYS
   };
 }
