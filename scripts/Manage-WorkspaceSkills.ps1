@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Antigravity Workspace Skill & Capability Manager (Manage-WorkspaceSkills.ps1)
     Dynamically binds domain skill packs and MCP servers from ~/.gemini/config/skills-vault/
@@ -29,13 +29,14 @@ param(
     [ValidateSet("List", "Status", "Detect", "DetectAndAdd", "Add", "Remove")]
     [string]$Action = "Status",
 
-    [ValidateSet("web-frontend", "cloud-data", "runtimes", "all", "")]
+    [ValidateSet("web-frontend", "cloud-data", "runtimes", "notion", "all", "")]
     [string]$Pack = "",
 
     [string]$TargetDir = (Get-Location).Path,
 
     [switch]$WithPlaywright,
     [switch]$WithCloudMCP,
+    [switch]$WithNotionMCP,
     [switch]$Quiet
 )
 
@@ -166,18 +167,20 @@ function Add-PackToProject {
         }
     }
 
-    if (-not $exists) {
-        $newEntry = [PSCustomObject]@{ path = $packPath }
-        $skillsConfig.entries.Add($newEntry) | Out-Null
-        $jsonOut = $skillsConfig | ConvertTo-Json -Depth 5
-        Set-Content -Path $SkillsJsonPath -Value $jsonOut -Encoding UTF8
-        if (-not $Quiet) {
-            Write-Host "  [+] Added skill pack '$PackName' to $SkillsJsonPath" -ForegroundColor Green
-            Write-Host "      Skills: $($VaultPacks[$PackName].Skills -join ', ')" -ForegroundColor Gray
-        }
-    } else {
-        if (-not $Quiet) {
-            Write-Host "  [.] Skill pack '$PackName' is already registered in $SkillsJsonPath" -ForegroundColor Yellow
+    if ($VaultPacks[$PackName].Skills.Count -gt 0) {
+        if (-not $exists) {
+            $newEntry = [PSCustomObject]@{ path = $packPath }
+            $skillsConfig.entries.Add($newEntry) | Out-Null
+            $jsonOut = $skillsConfig | ConvertTo-Json -Depth 5
+            Set-Content -Path $SkillsJsonPath -Value $jsonOut -Encoding UTF8
+            if (-not $Quiet) {
+                Write-Host "  [+] Added skill pack '$PackName' to $SkillsJsonPath" -ForegroundColor Green
+                Write-Host "      Skills: $($VaultPacks[$PackName].Skills -join ', ')" -ForegroundColor Gray
+            }
+        } else {
+            if (-not $Quiet) {
+                Write-Host "  [.] Skill pack '$PackName' is already registered in $SkillsJsonPath" -ForegroundColor Yellow
+            }
         }
     }
 
@@ -237,6 +240,30 @@ function Add-PackToProject {
             Write-Host "  [+] Configured Cloud MCP servers (data-agent-kit, notebooks) in $McpJsonPath (opt-in)" -ForegroundColor Green
         }
     }
+
+    # Notion Remote MCP is opt-in or bound with notion pack
+    if ($WithNotionMCP -or $PackName -eq "notion") {
+        $mcpConfig = @{ mcpServers = @{} }
+        if (Test-Path $McpJsonPath) {
+            try {
+                $rawMcp = Get-Content -Raw -Path $McpJsonPath | ConvertFrom-Json
+                if ($rawMcp.mcpServers) {
+                    foreach ($prop in $rawMcp.mcpServers.PSObject.Properties) {
+                        $mcpConfig.mcpServers[$prop.Name] = $prop.Value
+                    }
+                }
+            } catch {}
+        }
+
+        $mcpConfig.mcpServers["notion"] = [PSCustomObject]@{
+            url = "https://mcp.notion.com/mcp"
+        }
+        $mcpJsonOut = $mcpConfig | ConvertTo-Json -Depth 5
+        Set-Content -Path $McpJsonPath -Value $mcpJsonOut -Encoding UTF8
+        if (-not $Quiet) {
+            Write-Host "  [+] Configured Notion Remote MCP server in $McpJsonPath (Streamable HTTP)" -ForegroundColor Green
+        }
+    }
 }
 
 function Remove-PackFromProject {
@@ -279,6 +306,25 @@ function Remove-PackFromProject {
                 $mcpJsonOut = $rawMcp | ConvertTo-Json -Depth 5
                 Set-Content -Path $McpJsonPath -Value $mcpJsonOut -Encoding UTF8
                 Write-Host "  [-] Removed Playwright MCP server from $McpJsonPath" -ForegroundColor Cyan
+            }
+        } catch {}
+    }
+
+    # If notion, remove Notion MCP
+    if ($PackName -eq "notion" -and (Test-Path $McpJsonPath)) {
+        try {
+            $rawMcp = Get-Content -Raw -Path $McpJsonPath | ConvertFrom-Json
+            if ($rawMcp.mcpServers -and $rawMcp.mcpServers.PSObject.Properties.Match("notion").Count -gt 0) {
+                $newServers = @{}
+                foreach ($prop in $rawMcp.mcpServers.PSObject.Properties) {
+                    if ($prop.Name -ne "notion") {
+                        $newServers[$prop.Name] = $prop.Value
+                    }
+                }
+                $rawMcp.mcpServers = $newServers
+                $mcpJsonOut = $rawMcp | ConvertTo-Json -Depth 5
+                Set-Content -Path $McpJsonPath -Value $mcpJsonOut -Encoding UTF8
+                Write-Host "  [-] Removed Notion MCP server from $McpJsonPath" -ForegroundColor Cyan
             }
         } catch {}
     }
