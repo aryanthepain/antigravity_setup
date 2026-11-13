@@ -271,6 +271,22 @@ function Add-PackToProject {
             }
         } catch {}
     }
+
+    # Vault Pack Subagents Loader (for notion, or any pack providing agents/)
+    $packAgentsDir = Join-Path $VaultDir "$PackName\agents"
+    if (Test-Path $packAgentsDir) {
+        $workspaceAgentsDir = Join-Path $AgentsDir "agents"
+        if (-not (Test-Path $workspaceAgentsDir)) {
+            New-Item -ItemType Directory -Path $workspaceAgentsDir -Force | Out-Null
+        }
+        Get-ChildItem -Path $packAgentsDir -Filter "*.md" | ForEach-Object {
+            $dest = Join-Path $workspaceAgentsDir $_.Name
+            Copy-Item -Path $_.FullName -Destination $dest -Force
+            if (-not $Quiet) {
+                Write-Host "  [+] Configured subagent '$($_.Name)' from vault pack '$PackName' in $workspaceAgentsDir" -ForegroundColor Green
+            }
+        }
+    }
 }
 
 function Remove-PackFromProject {
@@ -338,6 +354,22 @@ function Remove-PackFromProject {
                 Set-Content -Path $McpJsonPath -Value $mcpJsonOut -Encoding UTF8
             }
         } catch {}
+    }
+
+    # Vault Pack Subagents Unloader
+    $packAgentsDir = Join-Path $VaultDir "$PackName\agents"
+    $workspaceAgentsDir = Join-Path $AgentsDir "agents"
+    if ((Test-Path $packAgentsDir) -and (Test-Path $workspaceAgentsDir)) {
+        Get-ChildItem -Path $packAgentsDir -Filter "*.md" | ForEach-Object {
+            $dest = Join-Path $workspaceAgentsDir $_.Name
+            if (Test-Path $dest) {
+                Remove-Item -Path $dest -Force
+                Write-Host "  [-] Removed subagent '$($_.Name)' from $workspaceAgentsDir" -ForegroundColor Cyan
+            }
+        }
+        if ((Get-ChildItem -Path $workspaceAgentsDir -ErrorAction SilentlyContinue).Count -eq 0) {
+            Remove-Item -Path $workspaceAgentsDir -Force -Recurse -ErrorAction SilentlyContinue
+        }
     }
 }
 
