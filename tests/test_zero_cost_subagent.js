@@ -204,6 +204,52 @@ async function main() {
   });
 
   // -------------------------------------------------------------
+  // GROUP 7: Subagent Live Metrics, Endpoint Usage & Website Links
+  // -------------------------------------------------------------
+  console.log('\n--- [Group 7: Live Metrics & Dashboard URL Verification] ---');
+
+  runTest('PROVIDER_LINKS defines valid HTTPS dashboard URLs for all subagents', () => {
+    assert.ok(subagent.PROVIDER_LINKS, 'PROVIDER_LINKS must be defined');
+    const requiredProviders = ['openrouter', 'groq', 'mistral', 'gemini', 'notion'];
+    for (const p of requiredProviders) {
+      assert.ok(subagent.PROVIDER_LINKS[p], `PROVIDER_LINKS must contain '${p}'`);
+      assert.ok(subagent.PROVIDER_LINKS[p].usageUrl, `${p} must have usageUrl`);
+      assert.ok(subagent.PROVIDER_LINKS[p].usageUrl.startsWith('https://'), `${p} usageUrl must start with https://`);
+    }
+  });
+
+  await runAsyncTest('fetchAllSubagentMetrics returns structured data for all subagents', async () => {
+    const metrics = await subagent.fetchAllSubagentMetrics();
+    assert.ok(metrics.openrouter, 'metrics must include openrouter');
+    assert.ok(metrics.groq, 'metrics must include groq');
+    assert.ok(metrics.mistral, 'metrics must include mistral');
+    assert.ok(metrics.gemini, 'metrics must include gemini');
+    assert.ok(metrics.notion, 'metrics must include notion');
+    assert.strictEqual(typeof metrics.openrouter.configured, 'boolean');
+    assert.strictEqual(typeof metrics.groq.configured, 'boolean');
+  });
+
+  runTest('CLI executes --usage and prints metrics dashboard with website links', () => {
+    const res = spawnSync('node', [SCRIPT_PATH, '--usage'], { encoding: 'utf-8' });
+    assert.strictEqual(res.status, 0, `Expected exit 0, got ${res.status}: ${res.stderr}`);
+    assert.ok(res.stdout.includes('SUBAGENT USAGE & METRICS DASHBOARD'), 'Output should contain dashboard header');
+    assert.ok(res.stdout.includes('https://openrouter.ai/activity'), 'Output should contain OpenRouter link');
+    assert.ok(res.stdout.includes('https://console.groq.com/usage'), 'Output should contain Groq link');
+    assert.ok(res.stdout.includes('https://console.mistral.ai/usage/'), 'Output should contain Mistral link');
+    assert.ok(res.stdout.includes('https://aistudio.google.com/'), 'Output should contain Gemini link');
+  });
+
+  runTest('CLI executes --usage --json and outputs valid JSON with metrics', () => {
+    const res = spawnSync('node', [SCRIPT_PATH, '--usage', '--json'], { encoding: 'utf-8' });
+    assert.strictEqual(res.status, 0, `Expected exit 0, got ${res.status}: ${res.stderr}`);
+    const parsed = JSON.parse(res.stdout);
+    assert.ok(parsed.openrouter && parsed.openrouter.links.usageUrl, 'JSON must contain OpenRouter usageUrl');
+    assert.ok(parsed.groq && parsed.groq.links.usageUrl, 'JSON must contain Groq usageUrl');
+    assert.ok(parsed.mistral && parsed.mistral.links.usageUrl, 'JSON must contain Mistral usageUrl');
+    assert.ok(parsed.gemini && parsed.gemini.links.usageUrl, 'JSON must contain Gemini usageUrl');
+  });
+
+  // -------------------------------------------------------------
   // SUMMARY
   // -------------------------------------------------------------
   console.log('\n================================================================');
