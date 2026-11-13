@@ -29,13 +29,16 @@ param(
     [ValidateSet("List", "Status", "Detect", "DetectAndAdd", "Add", "Remove")]
     [string]$Action = "Status",
 
-    [ValidateSet("web-frontend", "cloud-data", "runtimes", "all", "")]
+    [ValidateSet("web-frontend", "cloud-data", "runtimes", "notion", "lovable", "strix-security", "all", "")]
     [string]$Pack = "",
 
     [string]$TargetDir = (Get-Location).Path,
 
     [switch]$WithPlaywright,
     [switch]$WithCloudMCP,
+    [switch]$WithNotionMCP,
+    [switch]$WithLovableMCP,
+    [switch]$WithStrixMCP,
     [switch]$Quiet
 )
 
@@ -166,18 +169,20 @@ function Add-PackToProject {
         }
     }
 
-    if (-not $exists) {
-        $newEntry = [PSCustomObject]@{ path = $packPath }
-        $skillsConfig.entries.Add($newEntry) | Out-Null
-        $jsonOut = $skillsConfig | ConvertTo-Json -Depth 5
-        Set-Content -Path $SkillsJsonPath -Value $jsonOut -Encoding UTF8
-        if (-not $Quiet) {
-            Write-Host "  [+] Added skill pack '$PackName' to $SkillsJsonPath" -ForegroundColor Green
-            Write-Host "      Skills: $($VaultPacks[$PackName].Skills -join ', ')" -ForegroundColor Gray
-        }
-    } else {
-        if (-not $Quiet) {
-            Write-Host "  [.] Skill pack '$PackName' is already registered in $SkillsJsonPath" -ForegroundColor Yellow
+    if ($VaultPacks[$PackName].Skills.Count -gt 0) {
+        if (-not $exists) {
+            $newEntry = [PSCustomObject]@{ path = $packPath }
+            $skillsConfig.entries.Add($newEntry) | Out-Null
+            $jsonOut = $skillsConfig | ConvertTo-Json -Depth 5
+            Set-Content -Path $SkillsJsonPath -Value $jsonOut -Encoding UTF8
+            if (-not $Quiet) {
+                Write-Host "  [+] Added skill pack '$PackName' to $SkillsJsonPath" -ForegroundColor Green
+                Write-Host "      Skills: $($VaultPacks[$PackName].Skills -join ', ')" -ForegroundColor Gray
+            }
+        } else {
+            if (-not $Quiet) {
+                Write-Host "  [.] Skill pack '$PackName' is already registered in $SkillsJsonPath" -ForegroundColor Yellow
+            }
         }
     }
 
@@ -237,6 +242,51 @@ function Add-PackToProject {
             Write-Host "  [+] Configured Cloud MCP servers (data-agent-kit, notebooks) in $McpJsonPath (opt-in)" -ForegroundColor Green
         }
     }
+
+    # Generic Vault Pack MCP Loader (for notion, lovable, strix-security, etc.)
+    $packMcpFile = Join-Path $VaultDir "$PackName\mcp_config.json"
+    if (Test-Path $packMcpFile) {
+        $mcpConfig = @{ mcpServers = @{} }
+        if (Test-Path $McpJsonPath) {
+            try {
+                $rawMcp = Get-Content -Raw -Path $McpJsonPath | ConvertFrom-Json
+                if ($rawMcp.mcpServers) {
+                    foreach ($prop in $rawMcp.mcpServers.PSObject.Properties) {
+                        $mcpConfig.mcpServers[$prop.Name] = $prop.Value
+                    }
+                }
+            } catch {}
+        }
+        try {
+            $vaultMcp = Get-Content -Raw -Path $packMcpFile | ConvertFrom-Json
+            if ($vaultMcp.mcpServers) {
+                foreach ($prop in $vaultMcp.mcpServers.PSObject.Properties) {
+                    $mcpConfig.mcpServers[$prop.Name] = $prop.Value
+                    if (-not $Quiet) {
+                        Write-Host "  [+] Configured '$($prop.Name)' MCP server from vault pack '$PackName' in $McpJsonPath" -ForegroundColor Green
+                    }
+                }
+                $mcpJsonOut = $mcpConfig | ConvertTo-Json -Depth 5
+                Set-Content -Path $McpJsonPath -Value $mcpJsonOut -Encoding UTF8
+            }
+        } catch {}
+    }
+
+    # Vault Pack Subagents Loader (for notion, or any pack providing agents/)
+    $packAgentsDir = Join-Path $VaultDir "$PackName\agents"
+    if (Test-Path $packAgentsDir) {
+        $workspaceAgentsDir = Join-Path $AgentsDir "agents"
+        if (-not (Test-Path $workspaceAgentsDir)) {
+            New-Item -ItemType Directory -Path $workspaceAgentsDir -Force | Out-Null
+        }
+        Get-ChildItem -Path $packAgentsDir -Filter "*.md" | ForEach-Object {
+            $dest = Join-Path $workspaceAgentsDir $_.Name
+            Copy-Item -Path $_.FullName -Destination $dest -Force
+            if (-not $Quiet) {
+                Write-Host "  [+] Configured subagent '$($_.Name)' from vault pack '$PackName' in $workspaceAgentsDir" -ForegroundColor Green
+            }
+        }
+    }
 }
 
 function Remove-PackFromProject {
@@ -281,6 +331,45 @@ function Remove-PackFromProject {
                 Write-Host "  [-] Removed Playwright MCP server from $McpJsonPath" -ForegroundColor Cyan
             }
         } catch {}
+    }
+
+    # Generic Vault Pack MCP Unloader
+    $packMcpFile = Join-Path $VaultDir "$PackName\mcp_config.json"
+    if ((Test-Path $packMcpFile) -and (Test-Path $McpJsonPath)) {
+        try {
+            $vaultMcp = Get-Content -Raw -Path $packMcpFile | ConvertFrom-Json
+            $rawMcp = Get-Content -Raw -Path $McpJsonPath | ConvertFrom-Json
+            if ($vaultMcp.mcpServers -and $rawMcp.mcpServers) {
+                $vaultNames = $vaultMcp.mcpServers.PSObject.Properties | Select-Object -ExpandProperty Name
+                $newServers = @{}
+                foreach ($prop in $rawMcp.mcpServers.PSObject.Properties) {
+                    if ($prop.Name -notin $vaultNames) {
+                        $newServers[$prop.Name] = $prop.Value
+                    } else {
+                        Write-Host "  [-] Removed '$($prop.Name)' MCP server from $McpJsonPath" -ForegroundColor Cyan
+                    }
+                }
+                $rawMcp.mcpServers = $newServers
+                $mcpJsonOut = $rawMcp | ConvertTo-Json -Depth 5
+                Set-Content -Path $McpJsonPath -Value $mcpJsonOut -Encoding UTF8
+            }
+        } catch {}
+    }
+
+    # Vault Pack Subagents Unloader
+    $packAgentsDir = Join-Path $VaultDir "$PackName\agents"
+    $workspaceAgentsDir = Join-Path $AgentsDir "agents"
+    if ((Test-Path $packAgentsDir) -and (Test-Path $workspaceAgentsDir)) {
+        Get-ChildItem -Path $packAgentsDir -Filter "*.md" | ForEach-Object {
+            $dest = Join-Path $workspaceAgentsDir $_.Name
+            if (Test-Path $dest) {
+                Remove-Item -Path $dest -Force
+                Write-Host "  [-] Removed subagent '$($_.Name)' from $workspaceAgentsDir" -ForegroundColor Cyan
+            }
+        }
+        if ((Get-ChildItem -Path $workspaceAgentsDir -ErrorAction SilentlyContinue).Count -eq 0) {
+            Remove-Item -Path $workspaceAgentsDir -Force -Recurse -ErrorAction SilentlyContinue
+        }
     }
 }
 
