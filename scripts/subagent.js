@@ -76,7 +76,11 @@ function parseArgs() {
     sort: 'intelligence', // intelligence | latest | code | reasoning | context
     router: 'auto', // auto | groq | direct
     listModels: false,
-    refreshModels: false
+    refreshModels: false,
+    mode: 'read', // read | write
+    confirm: false,
+    tool: '',
+    toolArgs: ''
   };
 
   for (let i = 0; i < args.length; i++) {
@@ -95,6 +99,10 @@ function parseArgs() {
     else if (arg === '--json') params.json = true;
     else if (arg === '--sort' || arg === '-s') params.sort = args[++i];
     else if (arg === '--router' || arg === '-r') params.router = args[++i];
+    else if (arg === '--mode') params.mode = args[++i];
+    else if (arg === '--confirm') params.confirm = true;
+    else if (arg === '--tool') params.tool = args[++i];
+    else if (arg === '--tool-args') params.toolArgs = args[++i];
     else if (arg === '--list-models' || arg === '-l') params.listModels = true;
     else if (arg === '--refresh-models') params.refreshModels = true;
     else if (!arg.startsWith('-') && !params.prompt) params.prompt = arg;
@@ -121,10 +129,11 @@ Tasks:
   code, patch         Surgical code generation / patch drafting following Ponytail rules.
   review, adversarial Independent adversarial review on git diff or specific files.
   compress, logs      Compress verbose terminal or test runner logs down to root causes & 1-line fix.
+  notion              Retrieve and compress Notion pages/databases or perform guarded mutations.
   ask (default)       General fast queries or lightweight assistant responses.
 
 Options:
-  -t, --task <type>       Task mode: research | code | review | compress | ask (default: ask)
+  -t, --task <type>       Task mode: research | code | review | compress | notion | ask (default: ask)
   -q, --query <string>    Research query or search question
   -p, --prompt <string>   Prompt instructions for code, ask, or compress
   -f, --file <path>       Target file path to inspect, modify, or review
@@ -135,6 +144,8 @@ Options:
       --provider <name>   Explicit provider name override (groq | mistral | gemini | openrouter)
   -r, --router <name>     Router engine: groq | auto | direct (default: auto)
   -s, --sort <criteria>   Sort OpenRouter models: intelligence | latest | code | reasoning | context
+      --mode <mode>       Notion mode: read | write (default: read)
+      --confirm           Confirm guarded write operations for Notion mutations
   -l, --list-models       Display discovered and ranked zero-cost models table
       --refresh-models    Force refresh of OpenRouter free models cache
       --max-tokens <int>  Maximum output tokens (default: 1024)
@@ -944,6 +955,203 @@ async function handleAsk(params) {
   }
 }
 
+// 6. NOTION WORKER SUBAGENT TASK
+async function handleNotion(params) {
+  const query = params.query || params.prompt;
+  const mode = (params.mode || 'read').toLowerCase();
+
+  // Resolve OAuth Token from skills-vault/notion/token.json or .agents/mcp_config.json
+  const vaultTokenFile = path.join(
+    process.env.USERPROFILE || process.env.HOME || '.',
+    '.gemini', 'config', 'skills-vault', 'notion', 'token.json'
+  );
+  const workspaceMcpFile = path.join(process.cwd(), '.agents', 'mcp_config.json');
+
+  let accessToken = null;
+
+  if (fs.existsSync(vaultTokenFile)) {
+    try {
+      const data = JSON.parse(fs.readFileSync(vaultTokenFile, 'utf-8'));
+      if (data && data.access_token) accessToken = data.access_token;
+    } catch {}
+  }
+
+  if (!accessToken && fs.existsSync(workspaceMcpFile)) {
+    try {
+      const data = JSON.parse(fs.readFileSync(workspaceMcpFile, 'utf-8'));
+      const auth = data?.mcpServers?.notion?.headers?.Authorization;
+      if (auth && auth.startsWith('Bearer ')) {
+        accessToken = auth.slice(7).trim();
+      }
+    } catch {}
+  }
+
+  if (!accessToken) {
+    console.error('❌ Notion OAuth token not found.');
+    console.error('Run: pwsh -File .\\scripts\\Manage-WorkspaceSkills.ps1 -Action Add -Pack notion');
+    process.exit(1);
+  }
+
+  async function callNotionMcp(toolName, toolArgs) {
+    return new Promise((resolve, reject) => {
+      const https = require('https');
+      const payload = JSON.stringify({
+        jsonrpc: '2.0',
+        id: Date.now(),
+        method: 'tools/call',
+        params: {
+          name: toolName,
+          arguments: toolArgs
+        }
+      });
+
+      const req = https.request({
+        hostname: 'mcp.notion.com',
+        path: '/mcp',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json, text/event-stream',
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Length': Buffer.byteLength(payload)
+        }
+      }, (res) => {
+        let body = '';
+        res.on('data', chunk => body += chunk);
+        res.on('end', () => {
+          if (res.statusCode >= 400) {
+            return reject(new Error(`Notion MCP returned HTTP ${res.statusCode}: ${body}`));
+          }
+          try {
+            let jsonStr = body;
+            if (body.includes('data: ')) {
+              const lines = body.split('\n');
+              for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                  jsonStr = line.slice(6).trim();
+                  break;
+                }
+              }
+            }
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed?.result?.content?.[0]?.text;
+            if (content) {
+              try {
+                return resolve(JSON.parse(content));
+              } catch {
+                return resolve(content);
+              }
+            }
+            resolve(parsed.result || parsed);
+          } catch (e) {
+            resolve(body);
+          }
+        });
+      });
+
+      req.on('error', reject);
+      req.write(payload);
+      req.end();
+    });
+  }
+
+  if (mode === 'write') {
+    if (!params.confirm) {
+      console.log('⚠️ [STRICT CONFIRMATION REQUIRED]');
+      console.log(`Action: Mutate Notion`);
+      console.log(`Instruction: ${query || params.tool || '(No query provided)'}`);
+      console.log('To execute this mutation, re-run with --confirm:');
+      console.log(`  node ./scripts/subagent.js --task notion --mode write --query "${query || ''}" --confirm`);
+      return;
+    }
+
+    if (params.tool) {
+      let argsObj = {};
+      if (params.toolArgs) {
+        try {
+          argsObj = JSON.parse(params.toolArgs);
+        } catch (e) {
+          console.error(`❌ Invalid --tool-args JSON: ${e.message}`);
+          process.exit(1);
+        }
+      }
+      console.log(`⏳ Executing Notion MCP mutation tool: ${params.tool}...`);
+      try {
+        const res = await callNotionMcp(params.tool, argsObj);
+        console.log(`✅ [Notion Operator] Mutation Succeeded:`);
+        console.log(typeof res === 'object' ? JSON.stringify(res, null, 2) : res);
+        return;
+      } catch (err) {
+        console.error(`❌ Notion MCP mutation failed: ${err.message}`);
+        process.exit(1);
+      }
+    }
+
+    console.log(`⏳ Executing Notion mutation: "${query}"...`);
+    const systemPrompt = `You are the Notion Operator Subagent.
+Report exact updated properties, status, and URL for the mutation instruction.`;
+    const result = await dispatchToSubagent(
+      `Mutation Instruction: ${query}`,
+      systemPrompt,
+      'fast',
+      params.model,
+      params.maxTokens,
+      params.provider,
+      { router: params.router, sort: params.sort, task: 'notion-operator' }
+    );
+    console.log(`[🤖 Worker Subagent: Notion Operator]`);
+    console.log(result.output);
+    return;
+  }
+
+  if (!query) {
+    console.error('Error: --query or --prompt is required for Notion search/read.');
+    process.exit(1);
+  }
+
+  console.log(`🔍 [Notion Subagent] Querying Notion for: "${query}"...`);
+  let searchResult;
+  try {
+    searchResult = await callNotionMcp('notion-search', { query });
+  } catch (err) {
+    console.error(`❌ Notion MCP call failed: ${err.message}`);
+    process.exit(1);
+  }
+
+  const rawJson = typeof searchResult === 'object' ? JSON.stringify(searchResult, null, 2) : String(searchResult);
+
+  const systemPrompt = `You are the Notion Researcher Subagent.
+Analyze the raw Notion search results and extract ONLY the facts and context relevant to the query: "${query}".
+Formatting Rules:
+1. Synthesize concise findings into bullet points or a markdown table.
+2. Include direct Notion URLs for all relevant pages/databases.
+3. Keep the total response dense, actionable, and strictly under 250 tokens.
+4. Do NOT dump raw JSON.`;
+
+  const userPrompt = `Query: ${query}\n\nRaw Notion MCP Output:\n${rawJson}`;
+
+  const result = await dispatchToSubagent(
+    userPrompt,
+    systemPrompt,
+    'fast',
+    params.model,
+    params.maxTokens,
+    params.provider,
+    {
+      router: params.router,
+      sort: params.sort,
+      task: 'notion-researcher'
+    }
+  );
+
+  if (params.json) {
+    console.log(JSON.stringify({ query, result: result.output, raw: searchResult }, null, 2));
+  } else {
+    console.log(`[🤖 Worker Subagent: ${result.provider} | Task: Notion Context Extraction]`);
+    console.log(result.output);
+  }
+}
+
 // Main CLI dispatch
 async function main() {
   const params = parseArgs();
@@ -982,6 +1190,9 @@ async function main() {
       case 'compress':
       case 'logs':
         await handleCompress(params);
+        break;
+      case 'notion':
+        await handleNotion(params);
         break;
       case 'ask':
       default:
