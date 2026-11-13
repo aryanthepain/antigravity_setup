@@ -1069,7 +1069,11 @@ async function handleNotion(params) {
       let argsObj = {};
       if (params.toolArgs) {
         try {
-          argsObj = JSON.parse(params.toolArgs);
+          if (fs.existsSync(params.toolArgs)) {
+            argsObj = JSON.parse(fs.readFileSync(params.toolArgs, 'utf-8'));
+          } else {
+            argsObj = JSON.parse(params.toolArgs);
+          }
         } catch (e) {
           console.error(`❌ Invalid --tool-args JSON: ${e.message}`);
           process.exit(1);
@@ -1109,19 +1113,48 @@ Report exact updated properties, status, and URL for the mutation instruction.`;
     process.exit(1);
   }
 
-  console.log(`🔍 [Notion Subagent] Querying Notion for: "${query}"...`);
+  // Check if query is a Notion URL or UUID / Page ID
+  const isPageIdOrUrl = /^[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}$/i.test(query.trim()) ||
+    query.includes('notion.com/') ||
+    query.includes('notion.so/');
+
   let searchResult;
-  try {
-    searchResult = await callNotionMcp('notion-search', { query });
-  } catch (err) {
-    console.error(`❌ Notion MCP call failed: ${err.message}`);
-    process.exit(1);
+  let fetchedPage = null;
+
+  if (isPageIdOrUrl || params.tool === 'notion-fetch') {
+    const pageId = query.trim().replace(/^.*\/p\//, '').split('?')[0];
+    console.log(`📄 [Notion Subagent] Fetching Notion page: "${pageId}"...`);
+    try {
+      fetchedPage = await callNotionMcp('notion-fetch', { id: pageId });
+      searchResult = fetchedPage;
+    } catch (err) {
+      console.error(`❌ Notion MCP fetch failed: ${err.message}`);
+      process.exit(1);
+    }
+  } else {
+    console.log(`🔍 [Notion Subagent] Querying Notion for: "${query}"...`);
+    try {
+      searchResult = await callNotionMcp('notion-search', { query });
+      // If top search result matches query title, also fetch page content for deep synthesis
+      const results = Array.isArray(searchResult?.results) ? searchResult.results : [];
+      const match = results.find(r => r.type === 'page' && r.title && r.title.toLowerCase().includes(query.trim().toLowerCase()));
+      if (match && match.id) {
+        console.log(`📄 [Notion Subagent] Auto-fetching matching page content for "${match.title}" (${match.id})...`);
+        try {
+          fetchedPage = await callNotionMcp('notion-fetch', { id: match.id });
+        } catch {}
+      }
+    } catch (err) {
+      console.error(`❌ Notion MCP call failed: ${err.message}`);
+      process.exit(1);
+    }
   }
 
-  const rawJson = typeof searchResult === 'object' ? JSON.stringify(searchResult, null, 2) : String(searchResult);
+  const payloadData = fetchedPage || searchResult;
+  const rawJson = typeof payloadData === 'object' ? JSON.stringify(payloadData, null, 2) : String(payloadData);
 
   const systemPrompt = `You are the Notion Researcher Subagent.
-Analyze the raw Notion search results and extract ONLY the facts and context relevant to the query: "${query}".
+Analyze the raw Notion data and extract ONLY the facts, properties, structure, and content relevant to the query: "${query}".
 Formatting Rules:
 1. Synthesize concise findings into bullet points or a markdown table.
 2. Include direct Notion URLs for all relevant pages/databases.
