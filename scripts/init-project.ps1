@@ -43,15 +43,15 @@ foreach ($d in $dirs) {
 # 2. Install Clean Templates from Template Directory
 if (Test-Path $TemplateDir) {
     $templateMap = @{
-        "$TemplateDir\AGENTS.md"                  = "$TargetDir\AGENTS.md"
-        "$TemplateDir\CONSTITUTION.md"            = "$TargetDir\CONSTITUTION.md"
-        "$TemplateDir\WORKING.md"                 = "$TargetDir\WORKING.md"
-        "$TemplateDir\verify.ps1"                 = "$TargetDir\scripts\verify.ps1"
-        "$TemplateDir\verify.sh"                  = "$TargetDir\scripts\verify.sh"
-        "$TemplateDir\test-secrets-exposure.ps1"  = "$TargetDir\scripts\test-secrets-exposure.ps1"
-        "$TemplateDir\agent-alarm.ps1"            = "$TargetDir\scripts\agent-alarm.ps1"
-        "$TemplateDir\subagent.js"                = "$TargetDir\scripts\subagent.js"
-        "$TemplateDir\Invoke-Subagent.ps1"        = "$TargetDir\scripts\Invoke-Subagent.ps1"
+        "$TemplateDir\AGENTS.md"                 = "$TargetDir\AGENTS.md"
+        "$TemplateDir\CONSTITUTION.md"           = "$TargetDir\CONSTITUTION.md"
+        "$TemplateDir\WORKING.md"                = "$TargetDir\WORKING.md"
+        "$TemplateDir\verify.ps1"                = "$TargetDir\scripts\verify.ps1"
+        "$TemplateDir\verify.sh"                 = "$TargetDir\scripts\verify.sh"
+        "$TemplateDir\test-secrets-exposure.ps1" = "$TargetDir\scripts\test-secrets-exposure.ps1"
+        "$TemplateDir\agent-alarm.ps1"           = "$TargetDir\scripts\agent-alarm.ps1"
+        "$TemplateDir\subagent.js"               = "$TargetDir\scripts\subagent.js"
+        "$TemplateDir\Invoke-Subagent.ps1"       = "$TargetDir\scripts\Invoke-Subagent.ps1"
     }
 
     foreach ($src in $templateMap.Keys) {
@@ -61,7 +61,8 @@ if (Test-Path $TemplateDir) {
             if (-not (Test-Path $dst)) {
                 Copy-Item -Path $actualSrc -Destination $dst -Force
                 Write-Host "  [+] Installed template: $dst" -ForegroundColor Green
-            } else {
+            }
+            else {
                 Write-Host "  [.] Preserved existing: $dst" -ForegroundColor Yellow
             }
         }
@@ -88,7 +89,8 @@ fi
             chmod +x "$TargetDir\.githooks\pre-commit" 2>/dev/null
         }
         Write-Host "  [+] Configured Git pre-commit verification hook (dual pwsh/sh)." -ForegroundColor Green
-    } catch {
+    }
+    catch {
         Write-Host "  [!] Could not configure git hooks automatically." -ForegroundColor Yellow
     }
 }
@@ -101,7 +103,8 @@ if (-not (Test-Path $mgrScript)) {
 if (Test-Path $mgrScript) {
     try {
         & pwsh -File $mgrScript -Action DetectAndAdd -TargetDir $TargetDir
-    } catch {
+    }
+    catch {
         Write-Host "  [!] Could not run automatic skill pack detection." -ForegroundColor Yellow
     }
 }
