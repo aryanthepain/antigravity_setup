@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Antigravity Workspace Skill & Capability Manager (Manage-WorkspaceSkills.ps1)
     Dynamically binds domain skill packs and MCP servers from ~/.gemini/config/skills-vault/
@@ -29,7 +29,7 @@ param(
     [ValidateSet("List", "Status", "Detect", "DetectAndAdd", "Add", "Remove")]
     [string]$Action = "Status",
 
-    [ValidateSet("web-frontend", "cloud-data", "runtimes", "notion", "lovable", "strix-security", "all", "")]
+    [ValidateSet("web-frontend", "cloud-data", "runtimes", "notion", "lovable", "strix-security", "overleaf", "canva", "all", "")]
     [string]$Pack = "",
 
     [string]$TargetDir = (Get-Location).Path,
@@ -39,6 +39,7 @@ param(
     [switch]$WithNotionMCP,
     [switch]$WithLovableMCP,
     [switch]$WithStrixMCP,
+    [switch]$WithCanvaMCP,
     [switch]$Quiet
 )
 

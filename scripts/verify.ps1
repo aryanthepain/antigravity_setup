@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Deterministic Verification Gate (verify.ps1)
     Detects repository type and runs zero-cost static analysis and test suites.
@@ -148,7 +148,18 @@ if (Test-Path $skillsGate) {
     }
 }
 
-# 7. Secret Exposure & Credential Leak Gate
+# 7. Canva MCP Verification Gate
+$canvaGate = Join-Path $PSScriptRoot "..\tests\test-canva-mcp.ps1"
+if (Test-Path $canvaGate) {
+    Write-Host ""
+    pwsh -File $canvaGate
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "❌ Canva MCP verification failed!" -ForegroundColor Red
+        $failed = $true
+    }
+}
+
+# 8. Secret Exposure & Credential Leak Gate
 $secretsGate = Join-Path $PSScriptRoot "test-secrets-exposure.ps1"
 if (Test-Path $secretsGate) {
     Write-Host ""
@@ -159,7 +170,7 @@ if (Test-Path $secretsGate) {
     }
 }
 
-# 8. Agent Alarm Resolver
+# 9. Agent Alarm Resolver
 $alarmScript = Join-Path $PSScriptRoot "agent-alarm.ps1"
 if (-not (Test-Path $alarmScript)) {
     $alarmScript = Join-Path $env:USERPROFILE ".gemini\config\skills\agent-alarm\scripts\agent-alarm.ps1"

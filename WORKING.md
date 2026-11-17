@@ -1,32 +1,26 @@
 # Ephemeral Task Scratchpad
 
 ## Current Objective
-- **Task**: Implement Asymmetric Subagent Delegation Engine & Fix Orchestrator Context Bloat
-- **Status**: **100% DONE & OPERATIONAL**
+- **Task**: Setup Canva MCP on a New Branch (`feat/canva-mcp`) with Vault-First Isolation & Remote Reachability Verification
+- **Status**: **100% COMPLETE & DETERMINISTICALLY VERIFIED**
 
-## Root Cause Analysis
-1. **The Issue**: In Antigravity IDE, the primary conversation model (Gemini 3.7 Flash) was directly reading entire multi-hundred-line files, running large grep queries, generating code in-context, and reviewing diffs, causing context inflation and rate-limit risks.
-2. **Missing Bridge**: While `global_rules.md` specified an ultra-lean orchestrator and `invoke_subagent`, Antigravity IDE did not provide a native `invoke_subagent` tool in its schema, forcing the model into monolithic single-agent behavior.
+## Summary of Changes
+1. **Branch Creation**:
+   - Created and switched to isolated feature branch `feat/canva-mcp`.
+2. **Skill Vault Integration (`~/.gemini/config/skills-vault/canva/`)**:
+   - `mcp_config.json`: Remote Streamable HTTP endpoint `https://mcp.canva.com/mcp` configured with secure dynamic placeholder `"Authorization": "Bearer ${CANVA_TOKEN}"`.
+   - `README.md`: Complete architecture guide covering remote MCP endpoint, OAuth 2.0 Bearer authentication, 16 supported scopes, local `@canva/cli` Dev MCP fallback, and lifecycle commands.
+   - `token.example.json`: Zero-secret credential template for user token provisioning.
+3. **Capability Manager (`scripts/Manage-WorkspaceSkills.ps1`)**:
+   - Added `"canva"` and `"overleaf"` to `[ValidateSet]` and parameter list.
+   - Verified automated `Add` and `Remove` lifecycle operations.
+4. **Workspace Configuration (`.agents/mcp_config.json`)**:
+   - Added `canva` alongside `notion` with `${CANVA_TOKEN}` placeholder, maintaining strict zero-secret compliance.
+5. **Deterministic Verification Gate (`tests/test-canva-mcp.ps1` & `scripts/verify.ps1`)**:
+   - Tested vault pack integrity, workspace binding, live HTTPS endpoint connectivity to `https://mcp.canva.com/mcp`, OAuth challenge verification (`error="invalid_token"`), resource metadata discovery (16 scopes), and secret exposure scanning.
+   - Integrated into `scripts/verify.ps1` (all gates passing 100%).
 
-## Implemented Solution
-1. **Asymmetric Worker Subagent Runner (`scripts/subagent.js` & `~/.gemini/config/scripts/subagent.js`)**:
-   - Zero-dependency Node.js CLI engine that connects to Groq LPU (Llama 3.3 70B @ 500 tok/s), Mistral Codestral, Google Gemini Flash, and OpenRouter.
-   - Supports 5 dedicated task modes:
-     - `--task research --query "..." --files "..."`: Reads files off-context and returns <250 token structured summary.
-     - `--task code --prompt "..." --file "..."`: Offloads code generation to Mistral Codestral / Groq.
-     - `--task review --diff`: Runs independent pre-PR adversarial code reviews.
-     - `--task compress --file "..."`: Compresses 1000+ line terminal/test logs to 3-line root-cause summaries.
-     - `--task ask --tier [fast|code|reasoning|cheap]`: Direct tier query.
-2. **PowerShell Wrapper (`scripts/Invoke-Subagent.ps1` & `~/.gemini/config/scripts/Invoke-Subagent.ps1`)**:
-   - Fast PowerShell interface for subagent invocation.
-3. **Global Behavioral Invariants Updated (`~/.gemini/config/rules/global_rules.md`)**:
-   - Explicitly instructs all Antigravity agent sessions to execute subagent tasks via `node .\scripts\subagent.js` to preserve the <600 token active orchestrator context.
-4. **Dedicated Custom Skill (`~/.gemini/config/skills/asymmetric-delegation/SKILL.md`)**:
-   - Comprehensive documentation and triggering rules for subagent delegation.
-5. **Interactive Control Center Web App (`docs/`)**:
-   - Updated `ArchitectureView.tsx` with Subagent Runner documentation, live CLI commands, and routing cascade.
-
-## Deterministic Verification Gates
-- `node .\scripts\subagent.js --task ask -p "..."` -> **PASSED (Mistral Codestral / Groq LPU response)**
-- `node .\scripts\subagent.js --task research --query "..." --files "master_blueprint_2026.md"` -> **PASSED (Off-context extraction)**
-- `pwsh -File .\scripts\verify.ps1` -> **PASSED (Exit Code 0)**
+## Deterministic Verification Results
+- `pwsh -File .\tests\test-canva-mcp.ps1` -> **5/5 PASSED**
+- `pwsh -File .\scripts\test-secrets-exposure.ps1` -> **PASSED (0 leaks across 84 tracked files)**
+- `pwsh -File .\scripts\verify.ps1` -> **ALL GATES GREEN (Exit code 0)**
