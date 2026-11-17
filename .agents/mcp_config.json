@@ -1,10 +1,12 @@
 {
   "mcpServers": {
     "canva": {
-      "url": "https://mcp.canva.com/mcp",
-      "headers": {
-        "Authorization": "Bearer ${CANVA_TOKEN}"
-      }
+      "command": "npx",
+      "args": [
+        "-y",
+        "@canva/cli@latest",
+        "mcp"
+      ]
     },
     "notion": {
       "url": "https://mcp.notion.com/mcp",

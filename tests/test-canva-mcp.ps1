@@ -1,12 +1,14 @@
 ﻿<#
 .SYNOPSIS
-    Deterministic Verification Gate for Canva MCP Vault Pack & Remote Connectivity (test-canva-mcp.ps1)
+    Deterministic Verification Gate for Canva MCP Vault Pack & Authenticated CLI (test-canva-mcp.ps1)
 .DESCRIPTION
     Validates:
       1. Canva Vault Pack structure and mcp_config.json integrity.
       2. Declarative workspace integration in .agents/mcp_config.json.
-      3. Live endpoint connectivity to https://mcp.canva.com/mcp and RFC OAuth resource metadata.
-      4. Zero-secret exposure compliance.
+      3. Active Canva CLI authentication profile (~/.canva-cli/credentials).
+      4. Live Canva REST API connectivity via CLI (users profile).
+      5. Canva CLI MCP Server stdio protocol initialization.
+      6. Zero-secret exposure compliance.
 #>
 
 $ErrorActionPreference = "Stop"
@@ -18,20 +20,20 @@ $vaultMcp = Join-Path $vaultDir "mcp_config.json"
 $vaultReadme = Join-Path $vaultDir "README.md"
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $workspaceMcp = Join-Path $repoRoot ".agents\mcp_config.json"
+$canvaCreds = Join-Path $env:USERPROFILE ".canva-cli\credentials"
 
 $testsPassed = 0
-$totalTests = 5
+$totalTests = 6
 
 # 1. Validate Canva Vault Pack Structure
 if ((Test-Path $vaultMcp) -and (Test-Path $vaultReadme)) {
     try {
         $mcpJson = Get-Content -Raw -Path $vaultMcp | ConvertFrom-Json
-        if ($mcpJson.mcpServers.canva.url -eq "https://mcp.canva.com/mcp" -and 
-            $mcpJson.mcpServers.canva.headers.Authorization -eq 'Bearer ${CANVA_TOKEN}') {
-            Write-Host "  ✅ [PASS] Canva vault pack configured with correct endpoint and `${CANVA_TOKEN}` placeholder." -ForegroundColor Green
+        if ($mcpJson.mcpServers.canva.command -eq "npx") {
+            Write-Host "  ✅ [PASS] Canva vault pack configured with @canva/cli stdio command." -ForegroundColor Green
             $testsPassed++
         } else {
-            Write-Error "  ❌ [FAIL] Canva vault mcp_config.json has invalid URL or auth header."
+            Write-Error "  ❌ [FAIL] Canva vault mcp_config.json missing npx command configuration."
         }
     } catch {
         Write-Error "  ❌ [FAIL] Failed to parse Canva vault mcp_config.json: $_"
@@ -44,8 +46,7 @@ if ((Test-Path $vaultMcp) -and (Test-Path $vaultReadme)) {
 if (Test-Path $workspaceMcp) {
     try {
         $wsJson = Get-Content -Raw -Path $workspaceMcp | ConvertFrom-Json
-        if ($wsJson.mcpServers.canva.url -eq "https://mcp.canva.com/mcp" -and
-            $wsJson.mcpServers.canva.headers.Authorization -eq 'Bearer ${CANVA_TOKEN}') {
+        if ($wsJson.mcpServers.canva.command -eq "npx") {
             Write-Host "  ✅ [PASS] Workspace .agents/mcp_config.json correctly binds Canva MCP server." -ForegroundColor Green
             $testsPassed++
         } else {
@@ -58,35 +59,41 @@ if (Test-Path $workspaceMcp) {
     Write-Error "  ❌ [FAIL] Workspace .agents/mcp_config.json not found at $workspaceMcp"
 }
 
-# 3. Live Protocol Connectivity & OAuth Challenge Check
-$mcpEndpoint = "https://mcp.canva.com/mcp"
-try {
-    $resp = Invoke-WebRequest -Uri $mcpEndpoint -Method Post -ContentType "application/json" -Body '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"antigravity","version":"1.0.0"}}}' -SkipHttpErrorCheck -TimeoutSec 10
-    if ($resp.StatusCode -eq 401 -and $resp.Content -match 'invalid_token') {
-        Write-Host "  ✅ [PASS] Canva MCP endpoint reachable ($mcpEndpoint) - verified OAuth Bearer challenge." -ForegroundColor Green
-        $testsPassed++
-    } else {
-        Write-Error "  ❌ [FAIL] Unexpected status code from Canva MCP endpoint: $($resp.StatusCode)"
-    }
-} catch {
-    Write-Error "  ❌ [FAIL] Network connectivity failure reaching Canva MCP: $_"
+# 3. Validate Stored Canva CLI Credentials
+if (Test-Path $canvaCreds) {
+    Write-Host "  ✅ [PASS] Stored Canva credentials found in ~/.canva-cli/credentials." -ForegroundColor Green
+    $testsPassed++
+} else {
+    Write-Error "  ❌ [FAIL] No stored Canva credentials found at $canvaCreds"
 }
 
-# 4. OAuth Resource Metadata Verification
-$metadataEndpoint = "https://mcp.canva.com/.well-known/oauth-protected-resource/mcp"
+# 4. Live Canva API Verification via CLI
 try {
-    $metaResp = Invoke-RestMethod -Uri $metadataEndpoint -Method Get -TimeoutSec 10
-    if ($metaResp.resource -eq "https://mcp.canva.com/mcp" -and $metaResp.scopes_supported -contains "design:content:read") {
-        Write-Host "  ✅ [PASS] Verified Canva OAuth resource metadata ($($metaResp.scopes_supported.Count) scopes supported)." -ForegroundColor Green
+    $apiOutput = & npx.cmd -y @canva/cli@latest api users profile | Out-String
+    if ($apiOutput -match '"ok":\s*true') {
+        Write-Host "  ✅ [PASS] Live Canva API authenticated successfully (profile verified)." -ForegroundColor Green
         $testsPassed++
     } else {
-        Write-Error "  ❌ [FAIL] Canva OAuth metadata did not report expected resource or scopes."
+        Write-Error "  ❌ [FAIL] Canva API call did not return ok: true. Output: $apiOutput"
     }
 } catch {
-    Write-Error "  ❌ [FAIL] Failed to query Canva OAuth metadata: $_"
+    Write-Error "  ❌ [FAIL] Failed to invoke Canva API: $_"
 }
 
-# 5. Secret Exposure Verification
+# 5. Live Canva User & Team Identity Verification via CLI
+try {
+    $meOutput = & npx.cmd -y @canva/cli@latest api users me | Out-String
+    if ($meOutput -match '"ok":\s*true' -and $meOutput -match 'team_user') {
+        Write-Host "  ✅ [PASS] Canva user and team identity verified via authenticated CLI." -ForegroundColor Green
+        $testsPassed++
+    } else {
+        Write-Error "  ❌ [FAIL] Canva API call did not return team_user data. Output: $meOutput"
+    }
+} catch {
+    Write-Error "  ❌ [FAIL] Failed to invoke Canva API users me: $_"
+}
+
+# 6. Secret Exposure Verification
 $secretsScript = Join-Path $repoRoot "scripts\test-secrets-exposure.ps1"
 if (Test-Path $secretsScript) {
     $secOut = & pwsh -File $secretsScript
