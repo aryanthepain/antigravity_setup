@@ -1,0 +1,10 @@
+# Gitleaks configuration for antigravity_setup
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Allowlist test patterns and mock files"
+paths = [
+  '''scripts/test-secrets-exposure\.ps1''',
+  '''tests/test_zero_cost_subagent\.js'''
+]

@@ -562,7 +562,12 @@ function fetchNotionMetrics() {
   let configured = false;
   let status = 'Token not found';
 
-  if (fs.existsSync(vaultTokenFile)) {
+  if (process.env.NOTION_TOKEN || process.env.NOTION_API_KEY) {
+    configured = true;
+    status = 'Token Configured via Environment Variable';
+  }
+
+  if (!configured && fs.existsSync(vaultTokenFile)) {
     try {
       const data = JSON.parse(fs.readFileSync(vaultTokenFile, 'utf-8'));
       if (data && data.access_token) {
@@ -577,8 +582,17 @@ function fetchNotionMetrics() {
       const data = JSON.parse(fs.readFileSync(workspaceMcpFile, 'utf-8'));
       const auth = data?.mcpServers?.notion?.headers?.Authorization;
       if (auth && auth.startsWith('Bearer ')) {
-        configured = true;
-        status = 'Bearer Token Configured in Workspace MCP';
+        const val = auth.slice(7).trim();
+        if (val.startsWith('${') && val.endsWith('}')) {
+          const varName = val.slice(2, -1);
+          if (process.env[varName]) {
+            configured = true;
+            status = `Configured via Workspace MCP (${varName})`;
+          }
+        } else if (val) {
+          configured = true;
+          status = 'Bearer Token Configured in Workspace MCP';
+        }
       }
     } catch {}
   }
@@ -1509,16 +1523,16 @@ async function handleNotion(params) {
   const query = params.query || params.prompt;
   const mode = (params.mode || 'read').toLowerCase();
 
-  // Resolve OAuth Token from skills-vault/notion/token.json or .agents/mcp_config.json
+  // Resolve OAuth Token from env, skills-vault/notion/token.json, or .agents/mcp_config.json
   const vaultTokenFile = path.join(
     process.env.USERPROFILE || process.env.HOME || '.',
     '.gemini', 'config', 'skills-vault', 'notion', 'token.json'
   );
   const workspaceMcpFile = path.join(process.cwd(), '.agents', 'mcp_config.json');
 
-  let accessToken = null;
+  let accessToken = process.env.NOTION_TOKEN || process.env.NOTION_API_KEY || null;
 
-  if (fs.existsSync(vaultTokenFile)) {
+  if (!accessToken && fs.existsSync(vaultTokenFile)) {
     try {
       const data = JSON.parse(fs.readFileSync(vaultTokenFile, 'utf-8'));
       if (data && data.access_token) accessToken = data.access_token;
@@ -1530,7 +1544,13 @@ async function handleNotion(params) {
       const data = JSON.parse(fs.readFileSync(workspaceMcpFile, 'utf-8'));
       const auth = data?.mcpServers?.notion?.headers?.Authorization;
       if (auth && auth.startsWith('Bearer ')) {
-        accessToken = auth.slice(7).trim();
+        const val = auth.slice(7).trim();
+        if (val.startsWith('${') && val.endsWith('}')) {
+          const varName = val.slice(2, -1);
+          accessToken = process.env[varName] || null;
+        } else {
+          accessToken = val;
+        }
       }
     } catch {}
   }
