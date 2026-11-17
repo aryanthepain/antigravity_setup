@@ -25,3 +25,15 @@
   5. **Deterministic Verification Gate**: `scripts/verify.ps1` and `scripts/test-secrets-exposure.ps1` must run locally and block commits/PRs whenever high-entropy tokens or raw Bearer strings are detected in tracked files.
 - **Updated Artifacts**: `~/.gemini/config/rules/global_rules.md`, `.github/workflows/deploy.yml`, `scripts/test-secrets-exposure.ps1`, `scripts/verify.ps1`, `scripts/subagent.js`, `templates/subagent.js`, `learning/instincts.md`.
 
+### [2026-11-17] Modern GitHub Actions Standard (Node 24 Native Actions & ubuntu-latest)
+- **Correction**: User flagged Node.js 20 deprecation warnings on GitHub runner forcing Node 24 fallback for `actions/checkout@v4` and `gitleaks-action@v2`, and instructed to learn so future `deploy.yml` and workflow files are created properly with `ubuntu-latest`.
+- **Root Cause**: Workflows were authored using legacy action major versions targeting the deprecated Node 20 runtime instead of current Node 24 native releases.
+- **New Invariant**:
+  1. **Node 24 Native Actions**: Always author GitHub Actions workflows using Node 24-native action versions:
+     - `actions/checkout@v7` (replaces deprecated `@v4`)
+     - `gitleaks/gitleaks-action@v3` (replaces deprecated `@v2`)
+     - `actions/setup-node@v7` (replaces deprecated `@v4`)
+     - `actions/upload-pages-artifact@v5` (replaces deprecated `@v3`)
+     - `actions/deploy-pages@v5` (replaces deprecated `@v4`)
+  2. **Standard Runner**: Default to `runs-on: ubuntu-latest` across all jobs for seamless rolling updates.
+- **Updated Artifacts**: `~/.gemini/config/rules/global_rules.md`, `.github/workflows/deploy.yml`, `learning/instincts.md`.
