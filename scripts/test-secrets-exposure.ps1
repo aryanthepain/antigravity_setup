@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Deterministic Secret Exposure and Credential Leak Scanner (test-secrets-exposure.ps1)
     Scans tracked git files for accidental credential leaks, hardcoded tokens, and private keys.

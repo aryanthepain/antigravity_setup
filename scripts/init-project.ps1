@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Antigravity Universal Project Scaffolder (init-project.ps1)
     Bootstraps any repository with clean Antigravity engineering files and deterministic verification gates.
@@ -43,13 +43,15 @@ foreach ($d in $dirs) {
 # 2. Install Clean Templates from Template Directory
 if (Test-Path $TemplateDir) {
     $templateMap = @{
-        "$TemplateDir\AGENTS.md"          = "$TargetDir\AGENTS.md"
-        "$TemplateDir\CONSTITUTION.md"    = "$TargetDir\CONSTITUTION.md"
-        "$TemplateDir\WORKING.md"         = "$TargetDir\WORKING.md"
-        "$TemplateDir\verify.ps1"         = "$TargetDir\scripts\verify.ps1"
-        "$TemplateDir\agent-alarm.ps1"    = "$TargetDir\scripts\agent-alarm.ps1"
-        "$TemplateDir\subagent.js"        = "$TargetDir\scripts\subagent.js"
-        "$TemplateDir\Invoke-Subagent.ps1" = "$TargetDir\scripts\Invoke-Subagent.ps1"
+        "$TemplateDir\AGENTS.md"                  = "$TargetDir\AGENTS.md"
+        "$TemplateDir\CONSTITUTION.md"            = "$TargetDir\CONSTITUTION.md"
+        "$TemplateDir\WORKING.md"                 = "$TargetDir\WORKING.md"
+        "$TemplateDir\verify.ps1"                 = "$TargetDir\scripts\verify.ps1"
+        "$TemplateDir\verify.sh"                  = "$TargetDir\scripts\verify.sh"
+        "$TemplateDir\test-secrets-exposure.ps1"  = "$TargetDir\scripts\test-secrets-exposure.ps1"
+        "$TemplateDir\agent-alarm.ps1"            = "$TargetDir\scripts\agent-alarm.ps1"
+        "$TemplateDir\subagent.js"                = "$TargetDir\scripts\subagent.js"
+        "$TemplateDir\Invoke-Subagent.ps1"        = "$TargetDir\scripts\Invoke-Subagent.ps1"
     }
 
     foreach ($src in $templateMap.Keys) {
@@ -71,14 +73,21 @@ if (Test-Path "$TargetDir\.git") {
     try {
         git -C $TargetDir config core.hooksPath .githooks
         
-        # Write pre-commit hook
+        # Write pre-commit hook (Dual pwsh / sh support)
         $preCommitScript = @"
 #!/bin/sh
-# Antigravity Pre-Commit Gate
-pwsh -File ./scripts/verify.ps1 -Quick
+# Antigravity Pre-Commit Gate (Dual pwsh / sh support)
+if command -v pwsh > /dev/null 2>&1; then
+  pwsh -File ./scripts/verify.ps1 -Quick
+else
+  sh ./scripts/verify.sh --quick
+fi
 "@
         Set-Content -Path "$TargetDir\.githooks\pre-commit" -Value $preCommitScript -NoNewline
-        Write-Host "  [+] Configured Git pre-commit verification hook." -ForegroundColor Green
+        if (-not ($IsWindows)) {
+            chmod +x "$TargetDir\.githooks\pre-commit" 2>/dev/null
+        }
+        Write-Host "  [+] Configured Git pre-commit verification hook (dual pwsh/sh)." -ForegroundColor Green
     } catch {
         Write-Host "  [!] Could not configure git hooks automatically." -ForegroundColor Yellow
     }
