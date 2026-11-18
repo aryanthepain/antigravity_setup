@@ -100,12 +100,13 @@ Write-Log "Checking external automated review requests (CodeRabbit)..." "Cyan"
 
 $codeRabbitFinished = $false
 while ($startTime.Elapsed.TotalSeconds -lt $TimeoutSeconds) {
-    $prDataJson = gh pr view $PRNumber --json reviewRequests,reviews,reviewDecision 2>$null
+    $prDataJson = gh pr view $PRNumber --json reviews,reviewDecision 2>$null
     if ($LASTEXITCODE -eq 0 -and $prDataJson) {
         $prData = $prDataJson | ConvertFrom-Json
         $pendingLogins = @()
-        if ($prData.reviewRequests) {
-            $pendingLogins = $prData.reviewRequests | ForEach-Object { $_.login }
+        $pendingReqs = gh api "repos/:owner/:repo/pulls/$PRNumber/requested_reviewers" --jq '.users[].login, .teams[].name' 2>$null
+        if ($pendingReqs) {
+            $pendingLogins = @($pendingReqs -split "`r?`n" | Where-Object { $_.Trim() -ne "" })
         }
 
         $reviews = @()

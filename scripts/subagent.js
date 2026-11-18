@@ -1384,6 +1384,12 @@ async function handleReview(params) {
       if (!diffContent.trim()) {
         diffContent = execSync('git diff --staged', { encoding: 'utf-8' });
       }
+      if (!diffContent.trim()) {
+        try { diffContent = execSync('git diff main...HEAD', { encoding: 'utf-8' }); } catch (_) {}
+      }
+      if (!diffContent.trim()) {
+        try { diffContent = execSync('git diff origin/main...HEAD', { encoding: 'utf-8' }); } catch (_) {}
+      }
     } catch (e) {
       diffContent = '(Unable to get git diff, reviewing target file)';
     }
