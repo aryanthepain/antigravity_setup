@@ -276,7 +276,17 @@ function Add-PackToProject {
             } catch {}
         }
 
-        $bundlePath = "c:\Users\Aryan Gupta\.antigravity-ide\extensions\googlecloudtools.datacloud-1.1.2-universal\mcp_servers\cli\mcp_proxy_bundle.js"
+        $extDir = Join-Path $env:USERPROFILE ".antigravity-ide\extensions"
+        $bundlePath = ""
+        if (Test-Path $extDir) {
+            $bundleMatch = Get-ChildItem -Path $extDir -Filter "mcp_proxy_bundle.js" -Recurse -Depth 4 -ErrorAction SilentlyContinue | Select-Object -First 1
+            if ($bundleMatch) {
+                $bundlePath = ($bundleMatch.FullName -replace '\\', '/')
+            }
+        }
+        if (-not $bundlePath) {
+            $bundlePath = Join-Path $env:USERPROFILE ".antigravity-ide\extensions\googlecloudtools.datacloud-1.3.0-universal\mcp_servers\cli\mcp_proxy_bundle.js" -replace '\\', '/'
+        }
         $mcpConfig.mcpServers["data-agent-kit"] = [PSCustomObject]@{
             command = "node"
             args    = @($bundlePath, "dataAgentKit-antigravityide")
