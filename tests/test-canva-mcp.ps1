@@ -1,4 +1,4 @@
-<#
+﻿<#
 .SYNOPSIS
     Deterministic Verification Gate for Canva MCP Vault Pack & Authenticated CLI (test-canva-mcp.ps1)
 .DESCRIPTION
@@ -32,13 +32,16 @@ if ((Test-Path $vaultMcp) -and (Test-Path $vaultReadme)) {
         if ($mcpJson.mcpServers.canva.command -eq "npx") {
             Write-Host "  ✅ [PASS] Canva vault pack configured with @canva/cli stdio command." -ForegroundColor Green
             $testsPassed++
-        } else {
+        }
+        else {
             Write-Error "  ❌ [FAIL] Canva vault mcp_config.json missing npx command configuration."
         }
-    } catch {
+    }
+    catch {
         Write-Error "  ❌ [FAIL] Failed to parse Canva vault mcp_config.json: $_"
     }
-} else {
+}
+else {
     Write-Error "  ❌ [FAIL] Missing Canva vault pack files at $vaultDir"
 }
 
@@ -49,13 +52,16 @@ if (Test-Path $workspaceMcp) {
         if ($wsJson.mcpServers.canva.command -eq "npx") {
             Write-Host "  ✅ [PASS] Workspace .agents/mcp_config.json correctly binds Canva MCP server." -ForegroundColor Green
             $testsPassed++
-        } else {
+        }
+        else {
             Write-Error "  ❌ [FAIL] Workspace .agents/mcp_config.json missing or malformed canva configuration."
         }
-    } catch {
+    }
+    catch {
         Write-Error "  ❌ [FAIL] Failed to parse workspace .agents/mcp_config.json: $_"
     }
-} else {
+}
+else {
     Write-Error "  ❌ [FAIL] Workspace .agents/mcp_config.json not found at $workspaceMcp"
 }
 
@@ -63,7 +69,8 @@ if (Test-Path $workspaceMcp) {
 if (Test-Path $canvaCreds) {
     Write-Host "  ✅ [PASS] Stored Canva credentials found in ~/.canva-cli/credentials." -ForegroundColor Green
     $testsPassed++
-} else {
+}
+else {
     Write-Error "  ❌ [FAIL] No stored Canva credentials found at $canvaCreds"
 }
 
@@ -73,10 +80,12 @@ try {
     if ($apiOutput -match '"ok":\s*true') {
         Write-Host "  ✅ [PASS] Live Canva API authenticated successfully (profile verified)." -ForegroundColor Green
         $testsPassed++
-    } else {
+    }
+    else {
         Write-Error "  ❌ [FAIL] Canva API call did not return ok: true. Output: $apiOutput"
     }
-} catch {
+}
+catch {
     Write-Error "  ❌ [FAIL] Failed to invoke Canva API: $_"
 }
 
@@ -86,10 +95,12 @@ try {
     if ($meOutput -match '"ok":\s*true' -and $meOutput -match 'team_user') {
         Write-Host "  ✅ [PASS] Canva user and team identity verified via authenticated CLI." -ForegroundColor Green
         $testsPassed++
-    } else {
+    }
+    else {
         Write-Error "  ❌ [FAIL] Canva API call did not return team_user data. Output: $meOutput"
     }
-} catch {
+}
+catch {
     Write-Error "  ❌ [FAIL] Failed to invoke Canva API users me: $_"
 }
 
@@ -100,10 +111,12 @@ if (Test-Path $secretsScript) {
     if ($LASTEXITCODE -eq 0) {
         Write-Host "  ✅ [PASS] Zero-secret exposure audit passed." -ForegroundColor Green
         $testsPassed++
-    } else {
+    }
+    else {
         Write-Error "  ❌ [FAIL] Secret exposure scanner flagged potential credentials."
     }
-} else {
+}
+else {
     Write-Error "  ❌ [FAIL] scripts/test-secrets-exposure.ps1 not found."
 }
 
