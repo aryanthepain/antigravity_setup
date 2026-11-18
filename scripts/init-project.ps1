@@ -52,6 +52,7 @@ if (Test-Path $TemplateDir) {
         "$TemplateDir\agent-alarm.ps1"           = "$TargetDir\scripts\agent-alarm.ps1"
         "$TemplateDir\subagent.js"               = "$TargetDir\scripts\subagent.js"
         "$TemplateDir\Invoke-Subagent.ps1"       = "$TargetDir\scripts\Invoke-Subagent.ps1"
+        "$TemplateDir\watch-pr-checks.ps1"       = "$TargetDir\scripts\watch-pr-checks.ps1"
     }
 
     foreach ($src in $templateMap.Keys) {
