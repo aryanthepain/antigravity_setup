@@ -33,6 +33,10 @@
    - Updated `docs/src/data/skillsData.ts`, `docs/src/data/situationsData.ts`, and `scripts/build_app_js.js`.
    - Rebuilt `docs/app.js` and production Vite bundle.
    - Updated `scripts/verify-codex-skills.ps1` and `scripts/test-codex-scenarios.ps1`.
+6. **Canva MCP & Dynamic Workspace Skills Vault Provisioning**:
+   - Upgraded `Manage-WorkspaceSkills.ps1` with rules and agents lifecycle provisioning (`.agents/rules/`, `.agents/agents/`).
+   - Integrated Canva vault pack with 7 Canva skills, `canva_rules.md`, and `canva-agent.md`.
+   - Bound Canva capability to workspace via `.agents/skills.json` and `.agents/mcp_config.json`.
 
 ## Deterministic Verification Results
 - `pwsh -File .\scripts\test-secrets-exposure.ps1` -> **PASSED (0 leaks across 75 tracked files)**

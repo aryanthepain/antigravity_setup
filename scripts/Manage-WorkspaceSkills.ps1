@@ -1,24 +1,24 @@
-<#
+﻿<#
 .SYNOPSIS
     Antigravity Workspace Skill & Capability Manager (Manage-WorkspaceSkills.ps1)
-    Dynamically binds domain skill packs and MCP servers from ~/.gemini/config/skills-vault/
-    to the active project via declarative .agents/skills.json and .agents/mcp_config.json.
+    Dynamically binds domain skill packs, MCP servers, subagents, and rules from ~/.gemini/config/skills-vault/
+    to the active project via declarative .agents/skills.json, .agents/mcp_config.json, .agents/agents/, and .agents/rules/.
 
 .DESCRIPTION
     Keeps Antigravity orchestrator ultra-lean by avoiding global token bloat.
-    Allows projects to declare exactly what domain skills (web-frontend, cloud-data, runtimes)
+    Allows projects to declare exactly what domain skills (web-frontend, cloud-data, runtimes, canva, overleaf, notion)
     they need, with automated fingerprinting and on-demand timeline provisioning.
 
 .PARAMETER Action
-    List           - Show all available packs in the vault and their contained skills
-    Status         - Show currently linked packs and MCP servers for the target workspace
+    List           - Show all available packs in the vault and their contained skills, agents, and rules
+    Status         - Show currently linked packs, MCP servers, subagents, and rules for the target workspace
     Detect         - Fingerprint the repository and report matching skill packs without modifying files
     DetectAndAdd   - Fingerprint the repository and automatically bind matching packs
     Add            - Manually bind a specific skill pack to the workspace
     Remove         - Manually unbind a specific skill pack from the workspace
 
 .PARAMETER Pack
-    Name of the skill pack to Add or Remove (web-frontend, cloud-data, runtimes, all)
+    Name of the skill pack to Add or Remove (web-frontend, cloud-data, runtimes, canva, overleaf, notion, lovable, strix-security, all)
 
 .PARAMETER TargetDir
     Target workspace root (defaults to current working directory)
@@ -58,9 +58,23 @@ function Get-VaultPacks {
     Get-ChildItem -Path $VaultDir -Directory | ForEach-Object {
         $pName = $_.Name
         $skills = Get-ChildItem -Path $_.FullName -Directory | Where-Object { Test-Path (Join-Path $_.FullName "SKILL.md") } | Select-Object -ExpandProperty Name
+        $hasMcp = Test-Path (Join-Path $_.FullName "mcp_config.json")
+        $agents = @()
+        $agentDir = Join-Path $_.FullName "agents"
+        if (Test-Path $agentDir) {
+            $agents = Get-ChildItem -Path $agentDir -Filter "*.md" | Select-Object -ExpandProperty BaseName
+        }
+        $rules = @()
+        $rulesDir = Join-Path $_.FullName "rules"
+        if (Test-Path $rulesDir) {
+            $rules = Get-ChildItem -Path $rulesDir -Filter "*.md" | Select-Object -ExpandProperty BaseName
+        }
         $packs[$pName] = @{
             Path   = ($_.FullName -replace '\\', '/')
             Skills = $skills
+            HasMcp = $hasMcp
+            Agents = $agents
+            Rules  = $rules
         }
     }
     return $packs
@@ -125,6 +139,40 @@ function Detect-Packs {
     }
     if ($hasRuntimes) {
         $detected.Add("runtimes")
+    }
+
+    # 4. LaTeX & Overleaf detection
+    $hasTex = (Get-ChildItem -Path $Dir -Filter "*.tex" -Recurse -Depth 2 -ErrorAction SilentlyContinue).Count -gt 0
+    $hasBib = (Get-ChildItem -Path $Dir -Filter "*.bib" -Recurse -Depth 2 -ErrorAction SilentlyContinue).Count -gt 0
+    $hasOverleafTemplate = (Test-Path (Join-Path $Dir "templates/*Overleaf*")) -or (Test-Path (Join-Path $Dir "templates/*overleaf*"))
+    if ($hasTex -or $hasBib -or $hasOverleafTemplate) {
+        $detected.Add("overleaf")
+    }
+
+    # 5. Canva Design & Template detection
+    $hasCanva = $false
+    if (Test-Path (Join-Path $Dir "canva.json")) { $hasCanva = $true }
+    if (Test-Path (Join-Path $Dir "canva.config.*")) { $hasCanva = $true }
+    if (Test-Path (Join-Path $Dir ".canva-cli")) { $hasCanva = $true }
+    if ($hasPkgJson) {
+        try {
+            $pkg = Get-Content -Raw -Path (Join-Path $Dir "package.json") | ConvertFrom-Json
+            $deps = ""
+            if ($pkg.dependencies) { $deps += ($pkg.dependencies | Out-String) }
+            if ($pkg.devDependencies) { $deps += ($pkg.devDependencies | Out-String) }
+            if ($deps -match "@canva/cli|@canva/app-sdk|canva") {
+                $hasCanva = $true
+            }
+        } catch {}
+    }
+    if (-not $hasCanva) {
+        $canvaFiles = Get-ChildItem -Path $Dir -Filter "*canva*" -Depth 2 -ErrorAction SilentlyContinue
+        if ($canvaFiles.Count -gt 0) {
+            $hasCanva = $true
+        }
+    }
+    if ($hasCanva) {
+        $detected.Add("canva")
     }
 
     return $detected
@@ -244,7 +292,7 @@ function Add-PackToProject {
         }
     }
 
-    # Generic Vault Pack MCP Loader (for notion, lovable, strix-security, etc.)
+    # Generic Vault Pack MCP Loader (for canva, notion, lovable, strix-security, etc.)
     $packMcpFile = Join-Path $VaultDir "$PackName\mcp_config.json"
     if (Test-Path $packMcpFile) {
         $mcpConfig = @{ mcpServers = @{} }
@@ -273,7 +321,7 @@ function Add-PackToProject {
         } catch {}
     }
 
-    # Vault Pack Subagents Loader (for notion, or any pack providing agents/)
+    # Vault Pack Subagents Loader (for canva, notion, or any pack providing agents/)
     $packAgentsDir = Join-Path $VaultDir "$PackName\agents"
     if (Test-Path $packAgentsDir) {
         $workspaceAgentsDir = Join-Path $AgentsDir "agents"
@@ -285,6 +333,40 @@ function Add-PackToProject {
             Copy-Item -Path $_.FullName -Destination $dest -Force
             if (-not $Quiet) {
                 Write-Host "  [+] Configured subagent '$($_.Name)' from vault pack '$PackName' in $workspaceAgentsDir" -ForegroundColor Green
+            }
+        }
+    }
+
+    # Vault Pack Rules Loader (for canva, or any pack providing rules/)
+    $packRulesDir = Join-Path $VaultDir "$PackName\rules"
+    if (Test-Path $packRulesDir) {
+        $workspaceRulesDir = Join-Path $AgentsDir "rules"
+        if (-not (Test-Path $workspaceRulesDir)) {
+            New-Item -ItemType Directory -Path $workspaceRulesDir -Force | Out-Null
+        }
+        Get-ChildItem -Path $packRulesDir -Filter "*.md" | ForEach-Object {
+            $dest = Join-Path $workspaceRulesDir $_.Name
+            Copy-Item -Path $_.FullName -Destination $dest -Force
+            if (-not $Quiet) {
+                Write-Host "  [+] Provisioned rule '$($_.Name)' from vault pack '$PackName' into $workspaceRulesDir" -ForegroundColor Green
+            }
+        }
+    }
+
+    # Vault Pack Scripts Loader (for overleaf or any pack providing scripts/)
+    $packScriptsDir = Join-Path $VaultDir "$PackName\scripts"
+    if (Test-Path $packScriptsDir) {
+        $workspaceScriptsDir = Join-Path $TargetDir "scripts"
+        if (-not (Test-Path $workspaceScriptsDir)) {
+            New-Item -ItemType Directory -Path $workspaceScriptsDir -Force | Out-Null
+        }
+        Get-ChildItem -Path $packScriptsDir -File | ForEach-Object {
+            $dest = Join-Path $workspaceScriptsDir $_.Name
+            if (-not (Test-Path $dest)) {
+                Copy-Item -Path $_.FullName -Destination $dest -Force
+                if (-not $Quiet) {
+                    Write-Host "  [+] Provisioned script '$($_.Name)' from vault pack '$PackName' into $workspaceScriptsDir" -ForegroundColor Green
+                }
             }
         }
     }
@@ -372,6 +454,22 @@ function Remove-PackFromProject {
             Remove-Item -Path $workspaceAgentsDir -Force -Recurse -ErrorAction SilentlyContinue
         }
     }
+
+    # Vault Pack Rules Unloader
+    $packRulesDir = Join-Path $VaultDir "$PackName\rules"
+    $workspaceRulesDir = Join-Path $AgentsDir "rules"
+    if ((Test-Path $packRulesDir) -and (Test-Path $workspaceRulesDir)) {
+        Get-ChildItem -Path $packRulesDir -Filter "*.md" | ForEach-Object {
+            $dest = Join-Path $workspaceRulesDir $_.Name
+            if (Test-Path $dest) {
+                Remove-Item -Path $dest -Force
+                Write-Host "  [-] Removed rule '$($_.Name)' from $workspaceRulesDir" -ForegroundColor Cyan
+            }
+        }
+        if ((Get-ChildItem -Path $workspaceRulesDir -ErrorAction SilentlyContinue).Count -eq 0) {
+            Remove-Item -Path $workspaceRulesDir -Force -Recurse -ErrorAction SilentlyContinue
+        }
+    }
 }
 
 # --- Main Dispatcher ---
@@ -383,7 +481,18 @@ switch ($Action) {
         foreach ($k in $vaultPacks.Keys) {
             Write-Host "  - Pack: $k" -ForegroundColor Yellow
             Write-Host "    Path: $($vaultPacks[$k].Path)" -ForegroundColor Gray
-            Write-Host "    Skills ($($vaultPacks[$k].Skills.Count)): $($vaultPacks[$k].Skills -join ', ')" -ForegroundColor White
+            if ($vaultPacks[$k].Skills.Count -gt 0) {
+                Write-Host "    Skills ($($vaultPacks[$k].Skills.Count)): $($vaultPacks[$k].Skills -join ', ')" -ForegroundColor White
+            }
+            if ($vaultPacks[$k].Agents.Count -gt 0) {
+                Write-Host "    Agents: $($vaultPacks[$k].Agents -join ', ')" -ForegroundColor Magenta
+            }
+            if ($vaultPacks[$k].Rules.Count -gt 0) {
+                Write-Host "    Rules: $($vaultPacks[$k].Rules -join ', ')" -ForegroundColor Blue
+            }
+            if ($vaultPacks[$k].HasMcp) {
+                Write-Host "    MCP: Configured (mcp_config.json)" -ForegroundColor Green
+            }
         }
     }
 
@@ -408,6 +517,22 @@ switch ($Action) {
             $rawMcp = Get-Content -Raw -Path $McpJsonPath | ConvertFrom-Json
             $servers = ($rawMcp.mcpServers.PSObject.Properties | Select-Object -ExpandProperty Name) -join ', '
             Write-Host "Workspace MCP Servers: $servers" -ForegroundColor Cyan
+        }
+
+        $workspaceAgentsDir = Join-Path $AgentsDir "agents"
+        if (Test-Path $workspaceAgentsDir) {
+            $agList = (Get-ChildItem -Path $workspaceAgentsDir -Filter "*.md" | Select-Object -ExpandProperty BaseName) -join ', '
+            if ($agList) {
+                Write-Host "Workspace Agents: $agList" -ForegroundColor Magenta
+            }
+        }
+
+        $workspaceRulesDir = Join-Path $AgentsDir "rules"
+        if (Test-Path $workspaceRulesDir) {
+            $rList = (Get-ChildItem -Path $workspaceRulesDir -Filter "*.md" | Select-Object -ExpandProperty BaseName) -join ', '
+            if ($rList) {
+                Write-Host "Workspace Rules: $rList" -ForegroundColor Blue
+            }
         }
     }
 

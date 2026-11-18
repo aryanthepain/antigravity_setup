@@ -1,5 +1,11 @@
 {
   "mcpServers": {
+    "notion": {
+      "url": "https://mcp.notion.com/mcp",
+      "headers": {
+        "Authorization": "Bearer ${NOTION_TOKEN}"
+      }
+    },
     "canva": {
       "command": "npx",
       "args": [
@@ -7,12 +13,6 @@
         "@canva/cli@latest",
         "mcp"
       ]
-    },
-    "notion": {
-      "url": "https://mcp.notion.com/mcp",
-      "headers": {
-        "Authorization": "Bearer ${NOTION_TOKEN}"
-      }
     }
   }
 }
