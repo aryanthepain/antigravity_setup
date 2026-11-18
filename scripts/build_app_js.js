@@ -216,52 +216,7 @@ const SKILLS_DATA = [
     trigger: "Trigger on mentions of: 'grill me', 'stress-test this plan', 'clarify requirements', 'interview me on this design', 'ask me questions about this feature', or 'refine the brief'.",
     description: "Relentless Socratic interview walking down the decision tree one-by-one with recommended answers before code is touched.",
     command: "/grill-me",
-    details: "Walks down each branch of the design tree, resolving dependencies between decisions one-by-one. Captured decisions are written to brief/grilling outcomes for downstream PRD authoring."
-  },
-  {
-    name: "write-a-brief",
-    category: "workflow",
-    badge: "Scoping",
-    trigger: "Trigger on mentions of: 'write a brief', 'new brief', 'scope this work', 'kickoff memo', 'create scoping document', or 'start weekly phase'.",
-    description: "Generates structured first-person scoping memos in briefs/<N>-<slug>.md with frontmatter handoff contracts.",
-    command: "Skill / Workflow",
-    details: "Asks 3-5 focused questions, creates brief frontmatter (slug, title, stage, branch, prd), and sets initial stage to 'new'."
-  },
-  {
-    name: "write-a-prd",
-    category: "workflow",
-    badge: "PRD",
-    trigger: "Trigger on mentions of: 'write a prd', 'generate prd', 'create product requirements', 'formalize spec', or 'turn brief into prd'.",
-    description: "Authors comprehensive PRDs in prd/<slug>.md with assumptions, problem statements, extensive user stories, and testing decisions.",
-    command: "Skill / Workflow",
-    details: "Follows grilling outcomes to draft assumptions, solution architecture, deep module interfaces, and testing decisions."
-  },
-  {
-    name: "critique",
-    category: "workflow",
-    badge: "Review",
-    trigger: "Trigger on mentions of: 'critique this prd', 'find gaps in prd', 'review spec', 'stress test requirements', or 'judge prd'.",
-    description: "Acts as an LLM-as-a-judge on freshly written PRDs to identify logical gaps, missing edge cases, and architectural risks.",
-    command: "Skill / Workflow",
-    details: "Emits a structured gaps file that can be reviewed and applied back to the PRD."
-  },
-  {
-    name: "prd-to-issues",
-    category: "workflow",
-    badge: "Issue Breakdown",
-    trigger: "Trigger on mentions of: 'break prd into issues', 'create issues from prd', 'generate atomic tasks', or 'split spec into tickets'.",
-    description: "Transforms PRD user stories into atomic markdown issues in issues/NNN-<slug>.md with AFK/HITL classification.",
-    command: "Skill / Workflow",
-    details: "Numbers issues sequentially and writes acceptance criteria, target test commands, and dependency blocks."
-  },
-  {
-    name: "planner-tasks",
-    category: "workflow",
-    badge: "Task Board",
-    trigger: "Trigger on mentions of: 'planner tasks', 'task board sync', 'manage sprint tasks', 'triage backlog', or 'move card to in-review'.",
-    description: "Folder-based task board workflow syncing tasks between local folders and Microsoft Planner/Notion.",
-    command: "Skill / Workflow",
-    details: "Manages cards flowing through waiting-to-pick-up -> hitl -> in-progress -> in-review -> done."
+    details: "Walks down each branch of the design tree, resolving dependencies between decisions one-by-one. Captured decisions are written to active plans or WORKING.md."
   },
   {
     name: "improve-codebase-architecture",
@@ -340,15 +295,6 @@ const SKILLS_DATA = [
     description: "Bidirectional synchronization between local tasks/briefs/WORKING.md and your Notion Task Board Kanban via Notion MCP.",
     command: "Skill / Notion MCP",
     details: "Maps Notion Kanban stages: Backlog -> Ready -> In Progress -> In Review -> Done. Terminal state for agent is 'In Review'; only human merges and moves to 'Done'."
-  },
-  {
-    name: "create-task",
-    category: "integration",
-    badge: "Task Capture",
-    trigger: "Trigger on mentions of: 'create task', 'add to-do', 'log ticket', 'capture action item', or 'add task to board'.",
-    description: "Creates and categorizes a new task card with sizing (S/M/L) and mode (AFK/HITL).",
-    command: "Skill",
-    details: "Writes a structured task card with acceptance criteria and links to the Notion database."
   },
   {
     name: "agent-alarm",
@@ -1043,8 +989,8 @@ You are operating as an elite, autonomous software engineering agent inside the 
 - Async Execution Harnesses: opencode-runner / aider-pair for TDD loops; google-jules for cloud PRs; kaggle-gpu-fallback for uncapped GPU compute.
 
 ## MANDATORY 6-PHASE EXECUTION PROTOCOL
-1. PHASE 1: Socratic Grilling (/grill-me & write-a-brief) - Relentless Socratic interview walking down the decision tree branch-by-branch.
-2. PHASE 2: Specification & PRD (write-a-prd + critique + prd-to-issues) - Formalize contracts, critique gaps, and split into atomic AFK/HITL cards.
+1. PHASE 1: Socratic Grilling (/grill-me & /gsd-spec-phase) - Relentless Socratic interview resolving ambiguities and edge cases before code.
+2. PHASE 2: Phase Planning & Goal-Backward Verification (/gsd-plan-phase) - Generate wave-parallelized executable plans and verify against goals.
 3. PHASE 3: The Ponytail Anti-Bloat Gate (ponytail) - Climb Levels 1 to 6 (YAGNI -> Stdlib -> Platform -> Dependency -> One-Liner -> Minimal Code).
 4. PHASE 4: Cognitive Reasoning & Surgical TDD (sequential-thinking & tdd) - Plan thought steps, write failing tests first, make surgical diffs.
 5. PHASE 5: Deterministic Fleet Loop (verify.ps1 & fleet-loop) - mypy/tsc static checks, unit tests, max 3 test-fix retry circuit breaker.

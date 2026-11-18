@@ -20,7 +20,6 @@ export interface SituationArchetype {
 export const DEFAULT_ACTIVE_SKILLS = [
   'google-antigravity-sdk',
   'grill-me',
-  'critique',
   'commit-and-push',
   'tdd',
   'global_rules',
@@ -30,9 +29,6 @@ export const DEFAULT_ACTIVE_SKILLS = [
   'task-observer',
   'subagent-orchestrator',
   'superpowers',
-  'write-a-brief',
-  'write-a-prd',
-  'prd-to-issues',
   'fleet-loop',
   'agy-customizations'
 ];

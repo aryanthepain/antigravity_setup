@@ -1,32 +1,41 @@
 # Ephemeral Task Scratchpad
 
 ## Current Objective
-
-- **Task**: Setup Canva MCP on a New Branch (`feat/canva-mcp`) with Vault-First Isolation & Verified Canva CLI Authentication
+- **Task**: Purge Legacy Task, Issue, and PRD Artifacts and Skills in Favor of Native GSD Workflows (Issue #14)
 - **Status**: **100% COMPLETE & DETERMINISTICALLY VERIFIED**
+- **Target Branch**: `refactor/issue-14-purge-legacy-task-prd`
 
 ## Summary of Changes
-
-1. **Branch Creation**:
-   - Created and switched to isolated feature branch `feat/canva-mcp`.
-2. **Authenticated Canva CLI Profile**:
-   - User authenticated via `@canva/cli login` (Stored in `~/.canva-cli/credentials`).
-   - Verified live user profile (`display_name: "aggp2604"`, `user_id: "oUZfcHwX43rxy-8yrJOugw"`, `team_id: "oBZfcV9uPY8pG8S-q2XQ4g"`).
-   - Verified live design catalog access (`canva api designs list`).
-3. **Skill Vault Integration (`~/.gemini/config/skills-vault/canva/`)**:
-   - `mcp_config.json`: Configured with `@canva/cli@latest mcp` command via stdio, leveraging local encrypted credentials without committing secrets.
-   - `README.md`: Architecture guide detailing Canva CLI stdio MCP server, 10 advertised tools, profile management, and lifecycle commands.
-4. **Capability Manager (`scripts/Manage-WorkspaceSkills.ps1`)**:
-   - Added `"canva"` and `"overleaf"` to `[ValidateSet]` and parameter list.
-   - Verified automated `Add` and `Remove` lifecycle operations.
-5. **Workspace Configuration (`.agents/mcp_config.json`)**:
-   - Bound `canva` alongside `notion` using `@canva/cli@latest mcp` command.
-6. **Deterministic Verification Gate (`tests/test-canva-mcp.ps1` & `scripts/verify.ps1`)**:
-   - Tested vault pack integrity, workspace binding, stored Canva credentials, live Canva API (profile & identity), and zero-secret exposure.
-   - Integrated into `scripts/verify.ps1` (all gates passing 100%).
+1. **GitHub Issue Linkage**:
+   - Created GitHub Issue #14: `refactor(core): purge legacy task, issue, and PRD artifacts in favor of native GSD workflows`.
+2. **Context Window Optimization & Skill Archival**:
+   - Archived 7 legacy skills from `~/.gemini/config/skills/` to `~/.gemini/config/skills-vault/legacy-task-prd/`:
+     - `write-a-prd`
+     - `write-a-brief`
+     - `prd-to-issues`
+     - `critique`
+     - `create-task`
+     - `planner-tasks`
+     - `_shared`
+   - Archived legacy codex skills (`write-a-prd`, `write-a-brief`) from `~/.codex/skills/`.
+   - Streamlined `grill-me` (removed legacy "Brief mode" that assumed `briefs/` and `_shared/workflow.md`), `commit-and-push` (aligned with feature/phase branches), and `working-context`.
+3. **Repository Artifact Deletion**:
+   - Removed legacy `issues/` directory (7 pre-GSD issue notes).
+   - Removed legacy `prd/` directory (2 pre-GSD PRDs).
+   - Removed legacy `tasks/` directory.
+   - Removed `scripts/Reconcile-IssueNumbers.ps1` and `scripts/reconcile-issue-numbers.sh`.
+4. **Scaffolding & Templates Refactoring**:
+   - Modernized `templates/claude_orchestrator_prompt.md` and `templates/master_workflow_prompt.md` to reference native GSD slash commands (`/gsd-spec-phase`, `/gsd-plan-phase`, `/gsd-execute-phase`, `/gsd-code-review`, `/gsd-ship`).
+   - Synced modernized templates into `~/.gemini/config/skills/init-project/templates/`.
+   - Updated `templates/WORKING.md` branch patterns to `feat/...` and `gsd/...`.
+   - Updated `workflows/end_to_end_workflow.md` to remove legacy brief/issue reconciler references.
+5. **Documentation & Scenario Verification**:
+   - Updated `docs/src/data/skillsData.ts`, `docs/src/data/situationsData.ts`, and `scripts/build_app_js.js`.
+   - Rebuilt `docs/app.js` and production Vite bundle.
+   - Updated `scripts/verify-codex-skills.ps1` and `scripts/test-codex-scenarios.ps1`.
 
 ## Deterministic Verification Results
-
+- `pwsh -File .\scripts\test-secrets-exposure.ps1` -> **PASSED (0 leaks across 75 tracked files)**
+- `pwsh -File .\tests\test-workspace-skills.ps1` -> **6/6 PASSED**
 - `pwsh -File .\tests\test-canva-mcp.ps1` -> **6/6 PASSED**
-- `pwsh -File .\scripts\test-secrets-exposure.ps1` -> **PASSED (0 leaks across 85 tracked files)**
-- `pwsh -File .\scripts\verify.ps1` -> **ALL GATES GREEN (Exit code 0)**
+- `pwsh -File .\scripts\verify.ps1` -> **ALL DETERMINISTIC GATES GREEN (Exit code 0)**

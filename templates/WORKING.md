@@ -4,7 +4,7 @@
 - **Task ID / Slug**: [e.g. task-012 / feat-jwt-auth]
 - **Size**: [S / M / L]
 - **Status**: [In Progress / Blocked / In Review]
-- **Target Branch**: [e.g. brief/jwt-auth]
+- **Target Branch**: [e.g. feat/jwt-auth or gsd/phase-1-auth]
 
 ---
 
