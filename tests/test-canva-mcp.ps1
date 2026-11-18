@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Deterministic Verification Gate for Canva MCP Vault Pack & Authenticated CLI (test-canva-mcp.ps1)
 .DESCRIPTION

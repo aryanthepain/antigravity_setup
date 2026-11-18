@@ -24,3 +24,8 @@ dist/
 docs/dist/
 .vite/
 docs/.vite/
+
+# Generated Media & Charts
+*.png
+*.jpg
+*.jpeg
