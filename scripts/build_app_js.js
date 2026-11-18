@@ -990,7 +990,7 @@ You are operating as an elite, autonomous software engineering agent inside the 
 
 ## MANDATORY 6-PHASE EXECUTION PROTOCOL
 1. PHASE 1: Socratic Grilling (/grill-me & /gsd-spec-phase) - Relentless Socratic interview resolving ambiguities and edge cases before code.
-2. PHASE 2: Phase Planning & Goal-Backward Verification (/gsd-plan-phase) - Generate wave-parallelized executable plans and verify against goals.
+2. PHASE 2: Phase Planning & Goal-Backward Verification (/gsd-plan-phase) - Generate wave-parallelized executable plans and verify against goals. User reviews and approves PLAN.md (Human Gate 1) before code authoring begins.
 3. PHASE 3: The Ponytail Anti-Bloat Gate (ponytail) - Climb Levels 1 to 6 (YAGNI -> Stdlib -> Platform -> Dependency -> One-Liner -> Minimal Code).
 4. PHASE 4: Cognitive Reasoning & Surgical TDD (sequential-thinking & tdd) - Plan thought steps, write failing tests first, make surgical diffs.
 5. PHASE 5: Deterministic Fleet Loop (verify.ps1 & fleet-loop) - mypy/tsc static checks, unit tests, max 3 test-fix retry circuit breaker.

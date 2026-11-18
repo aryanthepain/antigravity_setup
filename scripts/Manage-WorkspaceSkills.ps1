@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
     Antigravity Workspace Skill & Capability Manager (Manage-WorkspaceSkills.ps1)
     Dynamically binds domain skill packs, MCP servers, subagents, and rules from ~/.gemini/config/skills-vault/
@@ -166,7 +166,9 @@ function Detect-Packs {
         } catch {}
     }
     if (-not $hasCanva) {
-        $canvaFiles = Get-ChildItem -Path $Dir -Filter "*canva*" -Depth 2 -ErrorAction SilentlyContinue
+        $canvaFiles = Get-ChildItem -Path $Dir -Filter "*canva*" -Depth 2 -ErrorAction SilentlyContinue | Where-Object {
+            $_.Name -notmatch "node_modules|\.git" -and $_.Name -match "(^|[-_.])canva([-._]|$)" -and $_.Name -notmatch "canvas"
+        }
         if ($canvaFiles.Count -gt 0) {
             $hasCanva = $true
         }
@@ -284,21 +286,22 @@ function Add-PackToProject {
                 $bundlePath = ($bundleMatch.FullName -replace '\\', '/')
             }
         }
-        if (-not $bundlePath) {
-            $bundlePath = Join-Path $env:USERPROFILE ".antigravity-ide\extensions\googlecloudtools.datacloud-1.3.0-universal\mcp_servers\cli\mcp_proxy_bundle.js" -replace '\\', '/'
-        }
-        $mcpConfig.mcpServers["data-agent-kit"] = [PSCustomObject]@{
-            command = "node"
-            args    = @($bundlePath, "dataAgentKit-antigravityide")
-        }
-        $mcpConfig.mcpServers["notebooks"] = [PSCustomObject]@{
-            command = "node"
-            args    = @($bundlePath, "notebooks-antigravityide")
-        }
-        $mcpJsonOut = $mcpConfig | ConvertTo-Json -Depth 5
-        Set-Content -Path $McpJsonPath -Value $mcpJsonOut -Encoding UTF8
-        if (-not $Quiet) {
-            Write-Host "  [+] Configured Cloud MCP servers (data-agent-kit, notebooks) in $McpJsonPath (opt-in)" -ForegroundColor Green
+        if ($bundlePath -and (Test-Path $bundlePath)) {
+            $mcpConfig.mcpServers["data-agent-kit"] = [PSCustomObject]@{
+                command = "node"
+                args    = @($bundlePath, "dataAgentKit-antigravityide")
+            }
+            $mcpConfig.mcpServers["notebooks"] = [PSCustomObject]@{
+                command = "node"
+                args    = @($bundlePath, "notebooks-antigravityide")
+            }
+            $mcpJsonOut = $mcpConfig | ConvertTo-Json -Depth 5
+            Set-Content -Path $McpJsonPath -Value $mcpJsonOut -Encoding UTF8
+            if (-not $Quiet) {
+                Write-Host "  [+] Configured Cloud MCP servers (data-agent-kit, notebooks) in $McpJsonPath (opt-in)" -ForegroundColor Green
+            }
+        } elseif (-not $Quiet) {
+            Write-Host "  [.] Note: mcp_proxy_bundle.js not detected in .antigravity-ide/extensions; skipped local data-agent-kit/notebooks servers" -ForegroundColor Gray
         }
     }
 
@@ -340,9 +343,15 @@ function Add-PackToProject {
         }
         Get-ChildItem -Path $packAgentsDir -Filter "*.md" | ForEach-Object {
             $dest = Join-Path $workspaceAgentsDir $_.Name
-            Copy-Item -Path $_.FullName -Destination $dest -Force
-            if (-not $Quiet) {
-                Write-Host "  [+] Configured subagent '$($_.Name)' from vault pack '$PackName' in $workspaceAgentsDir" -ForegroundColor Green
+            if (-not (Test-Path $dest)) {
+                Copy-Item -Path $_.FullName -Destination $dest -Force
+                if (-not $Quiet) {
+                    Write-Host "  [+] Configured subagent '$($_.Name)' from vault pack '$PackName' in $workspaceAgentsDir" -ForegroundColor Green
+                }
+            } else {
+                if (-not $Quiet) {
+                    Write-Host "  [.] Preserving existing workspace subagent '$($_.Name)' in $workspaceAgentsDir" -ForegroundColor Yellow
+                }
             }
         }
     }
@@ -356,9 +365,15 @@ function Add-PackToProject {
         }
         Get-ChildItem -Path $packRulesDir -Filter "*.md" | ForEach-Object {
             $dest = Join-Path $workspaceRulesDir $_.Name
-            Copy-Item -Path $_.FullName -Destination $dest -Force
-            if (-not $Quiet) {
-                Write-Host "  [+] Provisioned rule '$($_.Name)' from vault pack '$PackName' into $workspaceRulesDir" -ForegroundColor Green
+            if (-not (Test-Path $dest)) {
+                Copy-Item -Path $_.FullName -Destination $dest -Force
+                if (-not $Quiet) {
+                    Write-Host "  [+] Provisioned rule '$($_.Name)' from vault pack '$PackName' into $workspaceRulesDir" -ForegroundColor Green
+                }
+            } else {
+                if (-not $Quiet) {
+                    Write-Host "  [.] Preserving existing workspace rule '$($_.Name)' in $workspaceRulesDir" -ForegroundColor Yellow
+                }
             }
         }
     }
@@ -456,8 +471,14 @@ function Remove-PackFromProject {
         Get-ChildItem -Path $packAgentsDir -Filter "*.md" | ForEach-Object {
             $dest = Join-Path $workspaceAgentsDir $_.Name
             if (Test-Path $dest) {
-                Remove-Item -Path $dest -Force
-                Write-Host "  [-] Removed subagent '$($_.Name)' from $workspaceAgentsDir" -ForegroundColor Cyan
+                $vaultHash = (Get-FileHash -Path $_.FullName).Hash
+                $destHash = (Get-FileHash -Path $dest).Hash
+                if ($vaultHash -eq $destHash) {
+                    Remove-Item -Path $dest -Force
+                    Write-Host "  [-] Removed unedited subagent '$($_.Name)' from $workspaceAgentsDir" -ForegroundColor Cyan
+                } else {
+                    Write-Host "  [!] Preserving locally modified subagent '$($_.Name)' in $workspaceAgentsDir" -ForegroundColor Yellow
+                }
             }
         }
         if ((Get-ChildItem -Path $workspaceAgentsDir -ErrorAction SilentlyContinue).Count -eq 0) {
@@ -472,8 +493,14 @@ function Remove-PackFromProject {
         Get-ChildItem -Path $packRulesDir -Filter "*.md" | ForEach-Object {
             $dest = Join-Path $workspaceRulesDir $_.Name
             if (Test-Path $dest) {
-                Remove-Item -Path $dest -Force
-                Write-Host "  [-] Removed rule '$($_.Name)' from $workspaceRulesDir" -ForegroundColor Cyan
+                $vaultHash = (Get-FileHash -Path $_.FullName).Hash
+                $destHash = (Get-FileHash -Path $dest).Hash
+                if ($vaultHash -eq $destHash) {
+                    Remove-Item -Path $dest -Force
+                    Write-Host "  [-] Removed unedited rule '$($_.Name)' from $workspaceRulesDir" -ForegroundColor Cyan
+                } else {
+                    Write-Host "  [!] Preserving locally modified rule '$($_.Name)' in $workspaceRulesDir" -ForegroundColor Yellow
+                }
             }
         }
         if ((Get-ChildItem -Path $workspaceRulesDir -ErrorAction SilentlyContinue).Count -eq 0) {
@@ -562,6 +589,10 @@ switch ($Action) {
         if ($detected.Count -gt 0) {
             Write-Host "Detected packs: $($detected -join ', ')" -ForegroundColor Green
             foreach ($d in $detected) {
+                if (-not $vaultPacks.ContainsKey($d)) {
+                    Write-Host "  [!] Detected pack '$d' is not currently present in vault ($VaultDir). Skipping." -ForegroundColor Yellow
+                    continue
+                }
                 Add-PackToProject -PackName $d -VaultPacks $vaultPacks
             }
         } else {
