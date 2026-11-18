@@ -29,7 +29,7 @@ function Test-SkillMatch([string]$Prompt, [string]$ExpectedSkill) {
     if ($content -match 'description:\s*([^\r\n]+)') {
         $desc = $matches[1].ToLower()
         # Look for keyword overlaps
-        if ($ExpectedSkill -eq 'write-a-prd' -and $Prompt -match 'prd') { return $true }
+        if ($ExpectedSkill -eq 'gsd-spec-phase' -and ($Prompt -match 'spec' -or $Prompt -match 'deliverables')) { return $true }
         if ($ExpectedSkill -eq 'tdd' -and $Prompt -match 'tdd') { return $true }
         if ($ExpectedSkill -eq 'code-review' -and $Prompt -match 'review') { return $true }
         if ($ExpectedSkill -eq 'security-review' -and $Prompt -match 'security') { return $true }
@@ -39,9 +39,9 @@ function Test-SkillMatch([string]$Prompt, [string]$ExpectedSkill) {
     return $false
 }
 
-# Scenario 1: Write a PRD for a radar data adapter
-$s1 = Test-SkillMatch "Write a PRD for a radar data adapter" "write-a-prd"
-$results["Scenario 1 (write-a-prd trigger & structure)"] = if ($s1) { "PASS" } else { "FAIL" }
+# Scenario 1: Specify deliverables for a radar data adapter using GSD
+$s1 = Test-SkillMatch "Specify deliverables and acceptance criteria for a radar data adapter" "gsd-spec-phase"
+$results["Scenario 1 (gsd-spec-phase trigger & structure)"] = if ($s1) { "PASS" } else { "FAIL" }
 
 # Scenario 2: Add the detector using TDD
 $s2 = Test-SkillMatch "Add the detector using TDD" "tdd"

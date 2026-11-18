@@ -1,32 +1,45 @@
 # Ephemeral Task Scratchpad
 
 ## Current Objective
-- **Task**: Implement Asymmetric Subagent Delegation Engine & Fix Orchestrator Context Bloat
-- **Status**: **100% DONE & OPERATIONAL**
+- **Task**: Purge Legacy Task, Issue, and PRD Artifacts and Skills in Favor of Native GSD Workflows (Issue #14)
+- **Status**: **100% COMPLETE & DETERMINISTICALLY VERIFIED**
+- **Target Branch**: `refactor/issue-14-purge-legacy-task-prd`
 
-## Root Cause Analysis
-1. **The Issue**: In Antigravity IDE, the primary conversation model (Gemini 3.7 Flash) was directly reading entire multi-hundred-line files, running large grep queries, generating code in-context, and reviewing diffs, causing context inflation and rate-limit risks.
-2. **Missing Bridge**: While `global_rules.md` specified an ultra-lean orchestrator and `invoke_subagent`, Antigravity IDE did not provide a native `invoke_subagent` tool in its schema, forcing the model into monolithic single-agent behavior.
+## Summary of Changes
+1. **GitHub Issue Linkage**:
+   - Created GitHub Issue #14: `refactor(core): purge legacy task, issue, and PRD artifacts in favor of native GSD workflows`.
+2. **Context Window Optimization & Skill Archival**:
+   - Archived 7 legacy skills from `~/.gemini/config/skills/` to `~/.gemini/config/skills-vault/legacy-task-prd/`:
+     - `write-a-prd`
+     - `write-a-brief`
+     - `prd-to-issues`
+     - `critique`
+     - `create-task`
+     - `planner-tasks`
+     - `_shared`
+   - Archived legacy codex skills (`write-a-prd`, `write-a-brief`) from `~/.codex/skills/`.
+   - Streamlined `grill-me` (removed legacy "Brief mode" that assumed `briefs/` and `_shared/workflow.md`), `commit-and-push` (aligned with feature/phase branches), and `working-context`.
+3. **Repository Artifact Deletion**:
+   - Removed legacy `issues/` directory (7 pre-GSD issue notes).
+   - Removed legacy `prd/` directory (2 pre-GSD PRDs).
+   - Removed legacy `tasks/` directory.
+   - Removed `scripts/Reconcile-IssueNumbers.ps1` and `scripts/reconcile-issue-numbers.sh`.
+4. **Scaffolding & Templates Refactoring**:
+   - Modernized `templates/claude_orchestrator_prompt.md` and `templates/master_workflow_prompt.md` to reference native GSD slash commands (`/gsd-spec-phase`, `/gsd-plan-phase`, `/gsd-execute-phase`, `/gsd-code-review`, `/gsd-ship`).
+   - Synced modernized templates into `~/.gemini/config/skills/init-project/templates/`.
+   - Updated `templates/WORKING.md` branch patterns to `feat/...` and `gsd/...`.
+   - Updated `workflows/end_to_end_workflow.md` to remove legacy brief/issue reconciler references.
+5. **Documentation & Scenario Verification**:
+   - Updated `docs/src/data/skillsData.ts`, `docs/src/data/situationsData.ts`, and `scripts/build_app_js.js`.
+   - Rebuilt `docs/app.js` and production Vite bundle.
+   - Updated `scripts/verify-codex-skills.ps1` and `scripts/test-codex-scenarios.ps1`.
+6. **Canva MCP & Dynamic Workspace Skills Vault Provisioning**:
+   - Upgraded `Manage-WorkspaceSkills.ps1` with rules and agents lifecycle provisioning (`.agents/rules/`, `.agents/agents/`).
+   - Integrated Canva vault pack with 7 Canva skills, `canva_rules.md`, and `canva-agent.md`.
+   - Bound Canva capability to workspace via `.agents/skills.json` and `.agents/mcp_config.json`.
 
-## Implemented Solution
-1. **Asymmetric Worker Subagent Runner (`scripts/subagent.js` & `~/.gemini/config/scripts/subagent.js`)**:
-   - Zero-dependency Node.js CLI engine that connects to Groq LPU (Llama 3.3 70B @ 500 tok/s), Mistral Codestral, Google Gemini Flash, and OpenRouter.
-   - Supports 5 dedicated task modes:
-     - `--task research --query "..." --files "..."`: Reads files off-context and returns <250 token structured summary.
-     - `--task code --prompt "..." --file "..."`: Offloads code generation to Mistral Codestral / Groq.
-     - `--task review --diff`: Runs independent pre-PR adversarial code reviews.
-     - `--task compress --file "..."`: Compresses 1000+ line terminal/test logs to 3-line root-cause summaries.
-     - `--task ask --tier [fast|code|reasoning|cheap]`: Direct tier query.
-2. **PowerShell Wrapper (`scripts/Invoke-Subagent.ps1` & `~/.gemini/config/scripts/Invoke-Subagent.ps1`)**:
-   - Fast PowerShell interface for subagent invocation.
-3. **Global Behavioral Invariants Updated (`~/.gemini/config/rules/global_rules.md`)**:
-   - Explicitly instructs all Antigravity agent sessions to execute subagent tasks via `node .\scripts\subagent.js` to preserve the <600 token active orchestrator context.
-4. **Dedicated Custom Skill (`~/.gemini/config/skills/asymmetric-delegation/SKILL.md`)**:
-   - Comprehensive documentation and triggering rules for subagent delegation.
-5. **Interactive Control Center Web App (`docs/`)**:
-   - Updated `ArchitectureView.tsx` with Subagent Runner documentation, live CLI commands, and routing cascade.
-
-## Deterministic Verification Gates
-- `node .\scripts\subagent.js --task ask -p "..."` -> **PASSED (Mistral Codestral / Groq LPU response)**
-- `node .\scripts\subagent.js --task research --query "..." --files "master_blueprint_2026.md"` -> **PASSED (Off-context extraction)**
-- `pwsh -File .\scripts\verify.ps1` -> **PASSED (Exit Code 0)**
+## Deterministic Verification Results
+- `pwsh -File .\scripts\test-secrets-exposure.ps1` -> **PASSED (0 leaks across 75 tracked files)**
+- `pwsh -File .\tests\test-workspace-skills.ps1` -> **6/6 PASSED**
+- `pwsh -File .\tests\test-canva-mcp.ps1` -> **6/6 PASSED**
+- `pwsh -File .\scripts\verify.ps1` -> **ALL DETERMINISTIC GATES GREEN (Exit code 0)**

@@ -73,7 +73,7 @@ if ($errors.Count -eq 0) {
 }
 
 # 2. Trigger phrase validation for ported skills
-$requiredNonGsd = @('write-a-prd', 'write-a-brief', 'tdd', 'code-review', 'security-review', 'working-context', 'architecture-review', 'frontend-quality')
+$requiredNonGsd = @('tdd', 'code-review', 'security-review', 'working-context', 'architecture-review', 'frontend-quality')
 foreach ($r in $requiredNonGsd) {
     $p = Join-Path $skillsDir "$r\SKILL.md"
     if (Test-Path $p) {

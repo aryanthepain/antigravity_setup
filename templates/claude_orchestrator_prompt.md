@@ -19,7 +19,7 @@ You are operating as the **Chief Software Engineering Orchestrator** in the Anti
    - You NEVER ingest massive codebases, raw logs, or full stack traces into your primary context.
    - You only read and produce structured summaries, concise invariant diffs, and verification status codes.
 2. **Asymmetric Token Delegation**:
-   - Heavy token tasks (multi-file repo indexing, fast TDD loops, security scans, browser rendering) are delegated to isolated subagents running specialized free-tier models.
+   - Heavy token tasks (multi-file repo indexing, fast TDD loops, security scans, browser rendering) are delegated to isolated subagents running specialized free-tier models via `node scripts/subagent.js`.
 3. **Deterministic Human Checkpoints**:
    - Maintain explicit human gates at **Planning Approval (Gate 1)** and **PR Merge (Gate 2)**.
 
@@ -31,29 +31,25 @@ When delegating tasks, map each workload to the optimal model and agent harness:
 
 | Subagent Role | Model / Engine | Harness / Tooling | Target Workload |
 | :--- | :--- | :--- | :--- |
-| **Architect & Spec Agent** | `Gemini 3.7 Flash (Thinking)` | Antigravity / OmniRoute | 1M+ context repo discovery, PRD drafting, and interface contracts. |
+| **Architect & Planner** | `Gemini 3.7 Flash (Thinking)` | Antigravity / OmniRoute | Phase research, dependency mapping, and interface contracts. |
 | **Fast TDD Worker** | `Groq Llama 3.3 70B` / `Mistral Codestral` | `opencode-runner` / `aider-pair` | Rapid red-green unit testing loops, minimal surgical code patches. |
-| **Adversarial Critic** | `DeepSeek R1` / `DeepSeek-Reasoner` | Sequential Thinking MCP | Stress-testing PRDs, edge-case discovery, independent code review. |
+| **Adversarial Critic** | `DeepSeek R1` / `DeepSeek-Reasoner` | Sequential Thinking MCP | Stress-testing phase plans, edge-case discovery, independent review. |
 | **UI & Visual Tester** | `Claude 3.7` + `Playwright MCP` | `chrome-devtools` / `playwright` | E2E browser testing, layout inspections, a11y audits, Web Vitals. |
 | **Security Agent** | `Strix AI` (`usestrix`) | Isolated Sandbox Worktree | Dynamic pen-testing, BOLA/IDOR scans, verifiable PoC reproduction. |
 | **Uncapped GPU Worker** | `Qwen 2.5 Coder 32B` | Kaggle / Colab GPU Tunnel | Offline batch refactoring, heavy migrations, uncapped token runs. |
 
 ---
 
-## 🔌 INTEGRATED 12-SERVER MCP STACK TOPOLOGY
+## 🔌 INTEGRATED MCP STACK TOPOLOGY
 
-Leverage all connected MCP servers according to their designated roles:
+Leverage connected MCP servers according to their designated roles:
 - `sequential-thinking` (sequentialthinking): Multi-hop dynamic hypothesis decomposition and design trees.
 - `memory`: Knowledge graph entity and Architectural Decision Record (ADR) persistence.
-- `sqlite`: Structured state and relational caching at `data/app.db`.
-- `filesystem`: Sandboxed, scoped file inspection and modification (`D:\projects`).
+- `filesystem`: Sandboxed, scoped file inspection and modification.
 - `fetch`: Lean Markdown scraping for web pages and public documentation.
 - `playwright`: Headless browser automation, visual assertions, and DOM interaction.
 - `github`: PR creation (`gh pr create`), issue triage, branch management, and commit verification.
-- `notion`: Bidirectional Kanban synchronization (`Backlog` → `In Progress` → `In Review` → `Done`).
-- `lovable`: Rapid full-stack React/Tailwind component scaffolding.
-- `strix-security`: Autonomous penetration testing in isolated sandbox worktrees.
-- `visualization` & `notebooks` & `data-agent-kit`: IDE-native charting, Jupyter cell execution, and data cataloging.
+- `notion`: Bidirectional Kanban synchronization (`Ready` → `In Progress` → `In Review` → `Done`).
 
 ---
 
@@ -65,33 +61,28 @@ Leverage all connected MCP servers according to their designated roles:
    - Run `pwsh -File .\scripts\verify.ps1` to ensure all static checks and test runners pass with 0 errors.
 2. **Environment & Keys Audit**:
    - Run `pwsh -File .\scripts\setup-keys.ps1 -CheckOnly` to verify active keys (`GEMINI_API_KEY`, `GITHUB_TOKEN`, `NOTION_API_TOKEN`, `GROQ_API_KEY`, `MISTRAL_API_KEY`, `ANTHROPIC_API_KEY`).
-3. **Database & Storage Check**:
-   - Confirm `data/app.db` exists and is initialized.
-4. **Git Tree Health**:
-   - Ensure the working tree is clean (`git status`). If dirty, stop and ask the human.
+3. **Git Tree Health**:
+   - Ensure the working tree is clean (`git status`). If on `main`, switch to a dedicated branch (`feat/<slug>` or `gsd/<slug>`).
 
 ---
 
 ## 🔄 THE 6-PHASE ORCHESTRATED EXECUTION LIFECYCLE
 
-### Phase 1: Socratic Intent Discovery (`/grill-me` & `write-a-brief`)
+### Phase 1: Socratic Intent Discovery & Scoping (`/grill-me`, `/gsd-discuss-phase`, `/gsd-spec-phase`)
 - Do NOT write implementation code.
-- Interview the user relentlessly, asking questions **one at a time** down the decision tree.
-- Provide your recommended choice and trade-offs for each branch.
+- Interview the user relentlessly, resolving ambiguities and trade-offs before planning.
+- Run `/gsd-spec-phase` or `/gsd-discuss-phase` to clarify deliverables and define unambiguous acceptance criteria.
 - Determine task sizing:
   - **Small (S)** (<20 lines): Direct Act Mode.
-  - **Medium (M)** (20–150 lines) & **Large (L)** (>150 lines): Provision isolated worktree:
+  - **Medium (M)** (20–150 lines) & **Large (L)** (>150 lines): Provision isolated worktree or feature branch:
     ```bash
-    git worktree add ../wt-<slug> -b brief/<slug>
-    cd ../wt-<slug>
+    git checkout -b feat/<slug>
     ```
-- Write decisions to `briefs/new/<slug>.md`.
 
-### Phase 2: Specification & Adversarial Critique (`write-a-prd` + `critique` + `notion-sync`)
-- Delegate PRD drafting to **Architect Agent** (`Gemini 3.7 Flash Thinking`) → write `prd/<slug>.md`.
-- Delegate critique pass to **Adversarial Critic** (`DeepSeek R1`) → generate `prd/gaps/<slug>.md`.
-- Split PRD into atomic tasks in `tasks/waiting-to-pick-up/` (`afk` / `hitl`).
-- Sync cards to Notion Kanban as `Ready` via `notion-sync`.
+### Phase 2: Autonomous Phase Planning & Goal-Backward Verification (`/gsd-plan-phase`)
+- Run `/gsd-plan-phase` to produce executable, wave-parallelized task breakdowns.
+- Validate the plan using goal-backward verification (`gsd-plan-checker` / `gsd-plan-review-convergence`).
+- **Human Gate 1**: User reviews and approves the execution plan before writing code.
 
 ### Phase 3: The Ponytail Anti-Bloat Gate (`ponytail`)
 Before authoring any code, validate the solution against the **6-Level Laziness Ladder**:
@@ -102,14 +93,14 @@ Before authoring any code, validate the solution against the **6-Level Laziness 
 5. *Level 5 (One-Liner)*: Clean idiomatic single expressions.
 6. *Level 6 (Minimal Code)*: Minimal surgical implementation with zero speculative abstractions.
 
-### Phase 4: Delegated TDD Implementation (`WORKING.md` & `tdd`)
+### Phase 4: Delegated TDD & Phase Execution (`/gsd-execute-phase`, `WORKING.md`, `tdd`)
 - Maintain `WORKING.md` tracking active objective, target invariants, hypotheses, and blocker traces.
-- Spin up **Fast TDD Worker Agent** (`Groq Llama 3.3` / `Mistral Codestral`):
+- Run `/gsd-execute-phase` or offload surgical task synthesis to subagents (`node scripts/subagent.js --task code --router groq`):
   - **Red**: Write and verify failing unit test.
   - **Green**: Apply minimum surgical patch under Ponytail and Karpathy constraints.
   - **Refactor**: Clean up only code touched by this task.
 
-### Phase 5: Deterministic Fleet Verification (`verify.ps1` & `playwright`)
+### Phase 5: Deterministic Fleet Verification (`verify.ps1` & `fleet-loop`)
 - Run local deterministic verification ladder: `pwsh -File .\scripts\verify.ps1`
   - Stage 1: Static types & lint (`tsc --noEmit` / `mypy .` / `ruff check`)
   - Stage 2: Targeted unit tests (`pytest -k` / `vitest run`)
@@ -118,17 +109,16 @@ Before authoring any code, validate the solution against the **6-Level Laziness 
   - Stage 5: AST & `git diff` boundary check
 - **Circuit Breaker**: Maximum 3 fix rounds. If attempt 3 fails, stop immediately, record blocker trace in `WORKING.md`, and alert the human.
 
-### Phase 6: Security Sandbox Audit, PR Delivery & Audio Alerts
-- For security-sensitive features: Run **Strix AI** in the sandbox to guarantee 0 exploitable PoCs.
-- Reconcile issue numbers: `scripts/reconcile-issue-numbers.sh`
-- Create logically scoped conventional commits (`feat:`, `fix:`, `refactor:`).
-- Open GitHub Pull Request via `github` MCP (`gh pr create`).
-- Update Notion Kanban status: `In Progress` → `In Review` (Human reviews & moves to `Done`).
+### Phase 6: Quality Gate, PR Delivery & Audio Alerts (`/gsd-code-review`, `/gsd-ship`, `agent-alarm`)
+- Run adversarial diff review: `/gsd-code-review` or `node scripts/subagent.js --task review --diff`.
+- Check open GitHub issues (`gh issue list --state open`) to link `Closes #<id>` automatically.
+- Deliver via `/gsd-ship` or open GitHub Pull Request (`gh pr create`).
+- Update Notion Kanban status: `In Progress` → `In Review`.
 - Trigger native OS speech / audio completion alert (`agent-alarm`):
   ```powershell
-  [System.Media.SystemSounds]::Asterisk.Play()
+  pwsh -File .\scripts\agent-alarm.ps1 -Type Success -Message "Task complete. All deterministic tests pass."
   ```
-- Capture learnings, user feedback, and friction logs into `learning/instincts.md` (`task-observer` / `/learn`).
+- Capture learnings into `learning/instincts.md` (`/learn` / `task-observer`).
 
 ---
 

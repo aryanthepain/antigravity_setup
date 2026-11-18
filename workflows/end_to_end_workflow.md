@@ -10,7 +10,7 @@
 flowchart TD
     %% Stage 1
     subgraph S1["1. Task Ingestion & Sizing"]
-        A[Notion Task / Brief / Issue] --> B{Classify Task Size}
+        A[Requirement / Phase / Feature Intent] --> B{Classify Scope}
         B -->|Small S| S_ACT[Direct Act Mode]
         B -->|Medium M| M_PLAN[Plan Mode]
         B -->|Large L| L_SPEC[Spec & Research Mode]
@@ -22,7 +22,7 @@ flowchart TD
         L_SPEC --> GRILL["/grill-me Socratic Clarification"]
         GRILL --> ARCH_DOC[Architectural Spec & Invariants]
         PLAN_DOC & ARCH_DOC --> HG1{"Human Checkpoint: Approve Plan?"}
-        HG1 -->|Approved| WORKTREE["Provision Isolated Git Worktree<br/>git worktree add ../wt-slug brief/slug"]
+        HG1 -->|Approved| WORKTREE["Provision Isolated Git Worktree<br/>git worktree add ../wt-slug feat/slug"]
         HG1 -->|Changes Requested| M_PLAN
     end
 
@@ -102,7 +102,7 @@ For medium and large tasks, never code directly on the main working branch:
 
 ```bash
 # Create isolated worktree and branch
-git worktree add ../wt-<slug> -b brief/<slug>
+git worktree add ../wt-<slug> -b feat/<slug>
 cd ../wt-<slug>
 
 # Initialize active scratchpad
@@ -156,9 +156,9 @@ Run local test scripts (zero LLM token waste):
 
 ### Stage 7: Delivery, Audio Alert & Notion Synchronization
 
-1. Reconcile issue numbers to avoid merge collisions:
+1. Check open GitHub issues to link automatically:
    ```bash
-   bash scripts/reconcile-issue-numbers.sh --parent main
+   gh issue list --state open
    ```
 2. Commit changes with a descriptive conventional commit message:
    ```bash
@@ -166,7 +166,7 @@ Run local test scripts (zero LLM token waste):
    ```
 3. Open GitHub Pull Request:
    ```bash
-   gh pr create --base main --head brief/<slug> --title "feat: <title>" --body-file WORKING.md
+   gh pr create --base main --head feat/<slug> --title "feat: <title>" --body-file WORKING.md
    ```
 4. Update Notion Task:
    - Move status from `In Progress` → `In Review`.
